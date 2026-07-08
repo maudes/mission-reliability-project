@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Reliability — Group B Detail</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F7FA;--text:#111827;--text-muted:#5B6472;--text-faint:#8A93A1;
+  --primary:#005FBE;--primary-dark:#00468D;
+  --alert:#FF3838;--alert-dark:#D62828;--alert-tint:#FFF0F0;
+  --amber:#C97A12;--amber-tint:#FFF6E8;--amber-border:#F0B854;
+  --grey-dot:#9CA3AF;--green:#1A9E5C;--green-tint:#E9F8F0;
+  --grey-tint:#F0F2F5;--grey-text:#6B7280;
+  --surface:#FFFFFF;--border:#E2E6EC;--border-strong:#D2D8E0;--radius:12px;
+}
+*{box-sizing:border-box;}
+body{margin:0;min-width:960px;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.page{max-width:1400px;margin:0 auto;padding:28px 32px 80px;}
+
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text-muted);text-decoration:none;margin-bottom:20px;transition:color .15s;}
+.back-link:hover{color:var(--primary);}
+.back-link svg{width:14px;height:14px;}
+
+.sl{width:13px;height:13px;border-radius:50%;flex-shrink:0;position:relative;display:inline-block;}
+.sl.red{background:var(--alert);}
+.sl.red::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--alert);animation:ringpulse 1.8s ease-out infinite;}
+.sl.yellow{background:var(--amber);}
+.sl.green{background:var(--green);}
+.sl.grey{background:var(--grey-dot);}
+@keyframes ringpulse{0%{transform:scale(.8);opacity:.8;}100%{transform:scale(1.8);opacity:0;}}
+@keyframes livepulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+.risk-tag{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 10px;border-radius:100px;letter-spacing:.01em;}
+.risk-tag.red{background:var(--alert-tint);color:var(--alert-dark);}
+.risk-tag.yellow{background:var(--amber-tint);color:var(--amber);}
+.risk-tag.normal{background:var(--grey-tint);color:var(--text-muted);}
+.mission-tag{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:100px;white-space:nowrap;}
+.mission-tag.ongoing{background:var(--green-tint);color:var(--green);}
+.mission-tag.off{background:var(--grey-tint);color:var(--grey-text);}
+
+/* Banner */
+.group-banner{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 10px rgba(17,24,39,.07);margin-bottom:20px;}
+.banner-edge{position:absolute;top:0;left:0;bottom:0;width:5px;background:var(--alert);}
+.banner-inner{padding:20px 24px 20px 30px;display:flex;align-items:flex-start;gap:28px;flex-wrap:wrap;}
+.banner-identity{display:flex;align-items:center;gap:14px;min-width:190px;}
+.banner-id .group-code{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:20px;letter-spacing:.01em;line-height:1.2;}
+.banner-id .location{font-size:13px;color:var(--text-muted);margin-top:3px;}
+.banner-meta{display:flex;flex-direction:column;gap:8px;flex:1;min-width:240px;}
+.banner-tags{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.abnormal-stat{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted);}
+.abnormal-stat .num{font-weight:700;color:var(--alert-dark);}
+.banner-brief{font-size:13px;color:var(--text-faint);line-height:1.45;}
+.banner-people{display:flex;flex-direction:column;gap:6px;min-width:190px;border-left:1px solid var(--border);padding-left:24px;}
+.person-row{display:flex;flex-direction:column;gap:1px;}
+.person-label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;}
+.person-name{font-size:13px;font-weight:500;color:var(--text);}
+.person-name.multi{color:var(--text-muted);}
+.last-action-strip{border-top:1px solid var(--border);background:#FAFBFC;padding:8px 30px;display:flex;align-items:center;gap:8px;font-size:11.5px;flex-wrap:wrap;}
+.la-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);flex-shrink:0;}
+.action-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:5px;font-size:11.5px;font-weight:500;background:#EEF4FF;color:#2563EB;border:1px solid #BFDBFE;}
+.action-status{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;}
+.action-status.failed{color:var(--alert-dark);}
+.action-ts{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);}
+
+/* Controls row */
+.controls-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;}
+.view-toggle{display:inline-flex;align-items:center;gap:2px;padding:3px;background:#EAEDF1;border-radius:9px;}
+.view-toggle button{font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 16px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s,color .15s;}
+.view-toggle button svg{width:13px;height:13px;}
+.view-toggle button.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(17,24,39,.08);}
+
+/* Group control cards */
+.group-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ctrl-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .15s,box-shadow .15s,background .15s;display:flex;align-items:center;gap:12px;}
+.ctrl-card:hover{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,95,190,.08);background:#F7FAFF;}
+.ctrl-icon{width:34px;height:34px;border-radius:8px;background:var(--grey-tint);display:flex;align-items:center;justify-content:center;color:var(--text-muted);flex-shrink:0;}
+.ctrl-icon svg{width:16px;height:16px;}
+.ctrl-title{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.ctrl-desc{font-size:11px;color:var(--text-faint);line-height:1.35;}
+.ctrl-arrow{margin-left:auto;color:var(--text-faint);flex-shrink:0;}
+.ctrl-arrow svg{width:13px;height:13px;}
+
+/* View panels */
+#listView{display:block;}
+#mapView{display:none;}
+
+/* ============================================================
+   DEVICE TABLE
+   Columns (12):
+   Device | Personnel | Area | Connection | Channel | Recording | Battery | Sync | [Swap] | [Resync] | [•••]
+   Data cols: fluid minmax; Op cols: fixed px
+   ============================================================ */
+.table-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:8px;}
+.device-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;width:100%;}
+
+.dt-grid{
+  display:grid;
+  grid-template-columns:
+    minmax(80px,1fr)   /* Device        */
+    minmax(100px,1.2fr)/* Personnel      */
+    minmax(76px,.85fr) /* Area           */
+    minmax(88px,1fr)   /* Connection     */
+    minmax(76px,.85fr) /* Channel        */
+    minmax(90px,1.1fr) /* Recording      */
+    minmax(78px,.9fr)  /* Battery        */
+    minmax(70px,.8fr)  /* Sync           */
+    80px               /* Swap (fixed)   */
+    80px               /* Resync (fixed) */
+    36px;              /* ••• (fixed)    */
+  align-items:center;
+  width:100%;
+}
+
+/* Header */
+.dt-header{background:#FAFBFC;border-bottom:1px solid var(--border);}
+.dt-header .dt-cell{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;white-space:nowrap;overflow:hidden;}
+.dt-header .dt-cell:first-child{padding-left:16px;}
+/* Actions spans two header cells visually via a wrapper trick — we use colspan via a special class */
+.dt-header-actions{
+  /* spans Swap + Resync columns */
+  grid-column: span 2;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--text-faint);padding:10px 4px;text-align:center;
+  border-left:1px solid var(--border);
+}
+.dt-header .dt-cell.op{padding:10px 4px;text-align:center;border-left:1px solid var(--border);}
+
+/* Row */
+.dt-row{border-bottom:1px solid var(--border);transition:background .12s;width:100%;}
+.dt-row:last-child{border-bottom:none;}
+.dt-row:hover{background:#FAFCFF;}
+.dt-row.risk-high{border-left:3px solid var(--alert);}
+.dt-row.risk-med{border-left:3px solid var(--amber);}
+.dt-row.risk-normal{border-left:3px solid transparent;}
+
+/* Data cell */
+.dt-cell{padding:11px 8px;font-size:12.5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0;}
+.dt-cell:first-child{padding-left:16px;}
+/* Op cells — fixed, overflow visible for dropdowns */
+.dt-cell.op{padding:8px 4px;overflow:visible;flex-shrink:0;}
+.dt-cell.op-menu{padding:0 2px;overflow:visible;display:flex;align-items:center;justify-content:center;flex-shrink:0;border-left:1px solid var(--border);}
+
+/* Risk section headers */
+.dt-section-header{background:var(--grey-tint);border-bottom:1px solid var(--border);padding:5px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);display:flex;align-items:center;gap:6px;}
+.dt-section-header .sh-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dt-section-header.high .sh-dot{background:var(--alert);}
+.dt-section-header.med .sh-dot{background:var(--amber);}
+.dt-section-header.normal .sh-dot{background:var(--grey-dot);}
+
+/* Device ID */
+.device-id-cell{font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:12px;}
+.risk-high .device-id-cell{color:var(--alert-dark);}
+
+/* Flagged values */
+.field-flag{color:var(--alert-dark);font-weight:600;}
+.field-warn{color:var(--amber);font-weight:600;}
+
+/* Recording link */
+.rec-link{display:inline;color:inherit;text-decoration:none;border-bottom:1px dashed currentColor;cursor:pointer;font-weight:inherit;background:none;border-top:none;border-left:none;border-right:none;padding:0;font-family:inherit;font-size:inherit;line-height:inherit;}
+.rec-link:hover{opacity:.72;}
+.risk-high .rec-link.flagged{color:var(--alert-dark);font-weight:600;}
+
+/* Channel chip */
+.ch-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+  padding:3px 8px;border-radius:5px;border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--text-muted);
+  cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s;
+}
+.ch-chip:hover{background:#EEF4FF;border-color:#BFDBFE;color:var(--primary);}
+.ch-chip svg{width:10px;height:10px;flex-shrink:0;}
+
+/* Battery */
+.battery-wrap{display:flex;flex-direction:column;gap:3px;}
+.bat-bg{width:44px;height:5px;background:var(--grey-tint);border-radius:3px;overflow:hidden;}
+.bat-fill{height:100%;border-radius:3px;background:var(--green);}
+.bat-fill.low{background:var(--alert);}
+.bat-fill.mid{background:var(--amber);}
+.bat-val{font-size:11px;font-weight:500;}
+
+/* CTA buttons inside op cells */
+.cta{
+  font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:600;
+  padding:5px 4px;border-radius:6px;border:1px solid transparent;
+  cursor:pointer;white-space:nowrap;text-align:center;width:100%;
+  display:block;transition:opacity .15s,background .15s;
+}
+/* High risk: solid red swap, red-tint resync */
+.cta.swap-high{background:var(--alert);color:#fff;border-color:var(--alert);}
+.cta.swap-high:hover{background:var(--alert-dark);}
+.cta.resync-high{background:var(--surface);color:var(--alert-dark);border-color:#F8BABA;}
+.cta.resync-high:hover{background:var(--alert-tint);}
+/* Medium risk: amber style */
+.cta.swap-med{background:var(--surface);color:var(--amber);border-color:var(--amber-border);}
+.cta.swap-med:hover{background:var(--amber-tint);}
+.cta.resync-med{background:var(--surface);color:var(--amber);border-color:var(--amber-border);}
+.cta.resync-med:hover{background:var(--amber-tint);}
+/* Normal: secondary grey */
+.cta.swap-normal{background:var(--surface);color:var(--text-muted);border-color:var(--border-strong);}
+.cta.swap-normal:hover{background:var(--grey-tint);}
+.cta.resync-normal{background:var(--surface);color:var(--text-muted);border-color:var(--border-strong);}
+.cta.resync-normal:hover{background:var(--grey-tint);}
+
+/* 3-dot menu button */
+.menu-btn{
+  width:28px;height:28px;border-radius:7px;border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--text-muted);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.menu-btn:hover{background:var(--grey-tint);}
+.menu-btn svg{width:14px;height:14px;pointer-events:none;}
+/* Singleton floating dropdown — lives on <body>, never clipped by table overflow */
+#floatingDropdown{
+  display:none;
+  position:fixed;
+  background:var(--surface);
+  border:1px solid var(--border-strong);
+  border-radius:10px;
+  box-shadow:0 8px 32px rgba(17,24,39,.18);
+  min-width:252px;
+  z-index:9800;
+  overflow:hidden;
+}
+#floatingDropdown.open{display:block;}
+.dm-section-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);padding:10px 14px 4px;}
+.dm-item{display:flex;align-items:center;gap:8px;padding:8px 14px;font-size:12.5px;color:var(--text);cursor:pointer;transition:background .1s;user-select:none;}
+.dm-item:hover{background:var(--grey-tint);}
+.dm-item svg{width:13px;height:13px;color:var(--text-faint);flex-shrink:0;}
+.dm-item.danger{color:var(--alert-dark);}
+.dm-item.danger svg{color:var(--alert-dark);}
+.dm-item.amber-item{color:var(--amber);}
+.dm-item.amber-item svg{color:var(--amber);}
+.dm-divider{height:1px;background:var(--border);margin:4px 0;}
+
+/* Map */
+.map-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;display:flex;}
+.map-container{position:relative;height:520px;background:#EDF0F5;overflow:hidden;user-select:none;transition:width .3s ease;width:100%;}
+.map-container.panel-open{width:70%;}
+.floor-plan{position:absolute;inset:0;display:flex;flex-direction:column;padding:16px 18px;gap:5px;}
+.floor-row{display:flex;gap:5px;flex:1;}
+.floor-zone{background:#F8F9FB;border:1.5px solid #D2D8E2;border-radius:6px;display:flex;flex-direction:column;padding:7px 10px;flex:1;min-width:0;}
+.floor-zone.has-risk{border-color:rgba(255,56,56,.4);background:rgba(255,240,240,.5);}
+.zone-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#8A93A1;}
+.zone-label.risk{color:var(--alert-dark);}
+.officer-dot{position:absolute;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:transform .15s;}
+.officer-dot:hover{transform:scale(1.3);}
+.officer-dot.red-dot{background:var(--alert);}
+.officer-dot.green-dot{background:var(--green);}
+.officer-dot svg{width:10px;height:10px;color:#fff;pointer-events:none;}
+.officer-dot.has-warning::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid var(--alert);animation:ringpulse 1.8s ease-out infinite;}
+.cursor-tooltip{display:none;position:fixed;background:rgba(17,24,39,.92);color:#fff;font-size:11px;padding:6px 10px;border-radius:7px;white-space:nowrap;z-index:9999;pointer-events:none;line-height:1.5;}
+.map-legend{position:absolute;bottom:12px;left:12px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:8px;padding:7px 12px;display:flex;gap:12px;font-size:10.5px;color:var(--text-muted);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:9px;height:9px;border-radius:50%;}
+
+/* Side panel */
+.map-side-panel{width:0;overflow:hidden;transition:width .3s ease;background:var(--surface);border-left:0px solid var(--border);flex-shrink:0;}
+.map-side-panel.open{width:30%;border-left:1px solid var(--border);}
+.msp-inner{width:100%;min-width:280px;overflow-y:auto;height:520px;}
+.msp-close-bar{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid var(--border);background:#FAFBFC;position:sticky;top:0;z-index:10;}
+.msp-close-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-faint);}
+.msp-close-btn svg{width:12px;height:12px;}
+.msp-close-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);}
+.msp-body{padding:16px;}
+.msp-officer-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.msp-device-meta{font-size:12px;color:var(--text-muted);display:flex;flex-direction:column;gap:2px;}
+.msp-device-meta span{display:flex;gap:4px;}
+.msp-device-meta .meta-label{color:var(--text-faint);min-width:60px;}
+/* Channel row inside side panel */
+.msp-channel-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+.msp-channel-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:700;white-space:nowrap;}
+.msp-channel-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;
+  padding:5px 10px;border-radius:6px;border:1px solid var(--border-strong);
+  background:var(--surface);color:var(--text-muted);
+  cursor:pointer;transition:background .12s,border-color .12s;white-space:nowrap;
+}
+.msp-channel-chip:hover{background:#EEF4FF;border-color:#BFDBFE;color:var(--primary);}
+.msp-channel-chip svg{width:11px;height:11px;flex-shrink:0;}
+.msp-divider{height:1px;background:var(--border);margin:14px 0;}
+.msp-section-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin-bottom:10px;}
+.msp-status-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:4px;}
+.msp-stat-item .stat-label{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;margin-bottom:2px;}
+.msp-stat-item .stat-val{font-size:13px;font-weight:500;}
+.msp-stat-item .stat-val.flag{color:var(--alert-dark);font-weight:600;}
+.msp-battery{display:flex;align-items:center;gap:7px;margin-top:2px;}
+.msp-bat-bg{flex:1;height:6px;background:var(--grey-tint);border-radius:3px;overflow:hidden;}
+.msp-bat-fill{height:100%;border-radius:3px;background:var(--green);}
+.msp-bat-fill.low{background:var(--alert);}
+.msp-bat-fill.mid{background:var(--amber);}
+.msp-bat-pct{font-size:11.5px;font-weight:600;color:var(--text-muted);flex-shrink:0;}
+.msp-stream{width:100%;aspect-ratio:16/9;background:#111827;border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.msp-stream-live{display:inline-flex;align-items:center;gap:6px;background:rgba(255,56,56,.85);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:4px;position:absolute;top:9px;left:9px;}
+.msp-stream-live .live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:livepulse 1.6s ease-in-out infinite;}
+.msp-stream-icon{color:rgba(255,255,255,.22);}
+.msp-stream-icon svg{width:34px;height:34px;}
+.msp-action-btn{width:100%;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:8px;border:1px solid transparent;cursor:pointer;text-align:center;display:block;margin-bottom:7px;transition:background .15s;}
+.msp-action-btn.primary-red{background:var(--alert);color:#fff;border-color:var(--alert);}
+.msp-action-btn.primary-red:hover{background:var(--alert-dark);}
+.msp-action-btn.secondary{background:var(--surface);color:var(--primary);border-color:#BFDBFE;}
+.msp-action-btn.secondary:hover{background:#EEF4FF;}
+.msp-action-btn.ghost{background:transparent;color:var(--text-muted);border-color:var(--border-strong);font-weight:500;}
+.msp-action-btn.ghost:hover{background:var(--grey-tint);}
+.msp-verify-btn{width:100%;font-family:'IBM Plex Sans',sans-serif;font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:7px;border:1px solid transparent;cursor:pointer;text-align:left;display:block;margin-bottom:6px;transition:background .15s;}
+.msp-verify-btn.override{background:var(--alert-tint);color:var(--alert-dark);border-color:#F8BABA;}
+.msp-verify-btn.override:hover{background:#ffe8e8;}
+.msp-verify-btn.report{background:var(--amber-tint);color:var(--amber);border-color:var(--amber-border);}
+.msp-verify-btn.report:hover{background:#ffe8c8;}
+.msp-resp-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.msp-resp-btn{font-family:'IBM Plex Sans',sans-serif;font-size:11.5px;font-weight:600;padding:10px 8px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-muted);cursor:pointer;text-align:center;transition:background .15s;}
+.msp-resp-btn:hover{background:var(--grey-tint);}
+.msp-resp-btn.full{grid-column:1/-1;}
+.msp-resp-btn.escalate{color:var(--alert-dark);border-color:#F8BABA;background:var(--alert-tint);}
+.msp-resp-btn.escalate:hover{background:#ffe8e8;}
+
+/* ── MODALS ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(17,24,39,.55);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+
+/* Recording modal */
+.modal-box{background:var(--surface);border-radius:14px;padding:24px;max-width:500px;width:100%;box-shadow:0 16px 48px rgba(17,24,39,.18);position:relative;}
+.modal-close{position:absolute;top:14px;right:14px;width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-faint);}
+.modal-close svg{width:13px;height:13px;}
+.modal-stream{width:100%;aspect-ratio:16/9;background:#111827;border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;margin-bottom:14px;}
+.modal-stream-live{display:inline-flex;align-items:center;gap:6px;background:rgba(255,56,56,.85);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 8px;border-radius:4px;position:absolute;top:9px;left:9px;}
+.modal-stream-live .live-dot{width:6px;height:6px;border-radius:50%;background:#fff;animation:livepulse 1.6s ease-in-out infinite;}
+.modal-stream-icon{color:rgba(255,255,255,.2);}
+.modal-stream-icon svg{width:48px;height:48px;}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:5px;}
+.modal-sub{font-size:12px;color:var(--text-faint);margin-bottom:14px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;}
+.modal-btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 20px;border-radius:8px;border:1px solid var(--border-strong);cursor:pointer;background:var(--surface);color:var(--text-muted);}
+.modal-btn:hover{background:var(--grey-tint);}
+.modal-btn.primary{background:var(--primary);color:#fff;border-color:var(--primary);}
+.modal-btn.primary:hover{background:var(--primary-dark);}
+.modal-btn.danger{background:var(--alert);color:#fff;border-color:var(--alert);}
+.modal-btn.danger:hover{background:var(--alert-dark);}
+
+/* Channel picker modal */
+.ch-modal-box{background:var(--surface);border-radius:14px;padding:28px;max-width:380px;width:100%;box-shadow:0 16px 48px rgba(17,24,39,.18);position:relative;}
+.ch-modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.ch-modal-sub{font-size:12.5px;color:var(--text-muted);margin-bottom:20px;}
+.ch-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+.ch-option{
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;
+  padding:11px 14px;border-radius:8px;border:1.5px solid var(--border-strong);
+  background:var(--surface);color:var(--text-muted);cursor:pointer;
+  text-align:left;transition:border-color .12s,background .12s;
+}
+.ch-option:hover{border-color:var(--primary);background:#EEF4FF;color:var(--primary);}
+.ch-option.selected{border-color:var(--primary);background:#EEF4FF;color:var(--primary);}
+.ch-option.current{border-color:var(--green);background:var(--green-tint);color:var(--green);}
+.ch-option .ch-sub{display:block;font-size:10px;font-weight:400;font-family:'IBM Plex Sans',sans-serif;color:inherit;opacity:.7;margin-top:2px;}
+.ch-modal-footer{display:flex;justify-content:flex-end;gap:8px;}
+
+/* Override/Report modal */
+.vr-modal-box{background:var(--surface);border-radius:14px;padding:28px;max-width:440px;width:100%;box-shadow:0 16px 48px rgba(17,24,39,.18);position:relative;}
+.vr-modal-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.vr-modal-desc{font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:18px;}
+.vr-modal-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:6px;}
+.vr-modal-textarea{width:100%;height:80px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:var(--text);background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;padding:9px 11px;resize:none;outline:none;margin-bottom:6px;}
+.vr-modal-textarea:focus{border-color:var(--primary);}
+.vr-modal-note{font-size:10.5px;color:var(--text-faint);margin-bottom:18px;}
+.vr-modal-footer{display:flex;justify-content:flex-end;gap:8px;}
+
+/* Generic modal (audit, timeline, members, actions) */
+.gmodal-box{background:var(--surface);border-radius:14px;padding:28px;max-width:560px;width:100%;box-shadow:0 16px 48px rgba(17,24,39,.18);position:relative;max-height:88vh;display:flex;flex-direction:column;}
+.gmodal-title{font-size:16px;font-weight:700;margin-bottom:14px;flex-shrink:0;}
+.gmodal-scroll{overflow-y:auto;flex:1;}
+.gmodal-desc{font-size:13.5px;color:var(--text-muted);line-height:1.55;margin-bottom:20px;}
+.gmodal-btn{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;border:none;cursor:pointer;width:100%;background:var(--primary);color:#fff;margin-top:16px;flex-shrink:0;}
+.gmodal-btn:hover{background:var(--primary-dark);}
+/* Audit list */
+.audit-list{list-style:none;padding:0;margin:0;}
+.audit-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:3px;}
+.audit-item:last-child{border-bottom:none;}
+.a-ts{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--text-faint);}
+.a-actor{font-size:11px;font-weight:600;color:var(--text-muted);}
+.a-action{font-size:13px;color:var(--text);}
+.a-outcome{font-size:11.5px;font-weight:600;}
+.a-outcome.success{color:var(--green);}
+.a-outcome.failed{color:var(--alert-dark);}
+.a-outcome.pending{color:var(--amber);}
+.a-justification{font-size:11px;color:var(--text-faint);font-style:italic;padding:3px 8px;background:var(--grey-tint);border-radius:4px;margin-top:2px;}
+/* Timeline */
+.timeline-filters{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.tf-check{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);cursor:pointer;user-select:none;}
+.tf-check input{accent-color:var(--primary);cursor:pointer;}
+.tl-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.tl-item:last-child{border-bottom:none;}
+.tl-dot-col{display:flex;flex-direction:column;align-items:center;padding-top:2px;flex-shrink:0;}
+.tl-dot{width:10px;height:10px;border-radius:50%;}
+.tl-dot.system{background:var(--primary);}
+.tl-dot.warning{background:var(--alert);}
+.tl-dot.comms{background:var(--green);}
+.tl-body{flex:1;min-width:0;}
+.tl-ts{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-faint);}
+.tl-text{font-size:12.5px;color:var(--text);margin-top:1px;}
+.tl-tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;margin-top:3px;}
+.tl-tag.system{background:#EEF4FF;color:#2563EB;}
+.tl-tag.warning{background:var(--alert-tint);color:var(--alert-dark);}
+.tl-tag.comms{background:var(--green-tint);color:var(--green);}
+/* Members */
+.team-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.member-card{border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.member-card.leader{border-color:var(--primary);background:#F7FAFF;}
+.mc-role{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);margin-bottom:4px;}
+.mc-name{font-size:13.5px;font-weight:700;color:var(--text);}
+.mc-device{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.mc-area{font-size:11.5px;color:var(--text-faint);}
+</style>
+</head>
+<body>
+<div class="page">
+
+<a class="back-link" href="Dashboard_s1_v3.html">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  Back to Dashboard
+</a>
+
+<!-- BANNER -->
+<div class="group-banner">
+  <div class="banner-edge"></div>
+  <div class="banner-inner">
+    <div class="banner-identity">
+      <span class="sl red"></span>
+      <div class="banner-id">
+        <div class="group-code mono">GROUP B</div>
+        <div class="location">Central Hospital</div>
+      </div>
+    </div>
+    <div class="banner-meta">
+      <div class="banner-tags">
+        <span class="risk-tag red">High risk</span>
+        <span class="mission-tag ongoing">Mission ongoing</span>
+        <span class="abnormal-stat mono"><span class="num">3 abnormal</span> / 8 total devices</span>
+      </div>
+      <div class="banner-brief">Two body-cams unreachable since shift start, one stuck mid-recording.</div>
+    </div>
+    <div class="banner-people">
+      <div class="person-row">
+        <span class="person-label">Group Leader</span>
+        <span class="person-name">Alex Muller</span>
+      </div>
+      <div class="person-row">
+        <span class="person-label">Command Center</span>
+        <span class="person-name multi">Sammy Leung &middot; Tanya Sipowitz</span>
+      </div>
+    </div>
+  </div>
+  <div class="last-action-strip">
+    <span class="la-label">Last action</span>
+    <span class="action-pill">Auto-Action: Force Sync &mdash; Channel 2</span>
+    <span style="color:var(--border-strong)">&middot;</span>
+    <span class="action-status failed">&#10005; Failed</span>
+    <span class="action-ts">2026-07-05 06:14:33 UTC</span>
+  </div>
+</div>
+
+<!-- CONTROLS ROW -->
+<div class="controls-row">
+  <div class="view-toggle">
+    <button id="btnList" class="active" onclick="switchView('list')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      List view
+    </button>
+    <button id="btnMap" onclick="switchView('map')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      Map view
+    </button>
+  </div>
+  <div class="group-controls">
+    <div class="ctrl-card" onclick="openGModal('audit')">
+      <div class="ctrl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+      <div><div class="ctrl-title">Audit Report</div><div class="ctrl-desc">Full audit trail</div></div>
+      <div class="ctrl-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="ctrl-card" onclick="openGModal('timeline')">
+      <div class="ctrl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div><div class="ctrl-title">Incident Timeline</div><div class="ctrl-desc">Consolidated event log</div></div>
+      <div class="ctrl-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+    <div class="ctrl-card" onclick="openGModal('members')">
+      <div class="ctrl-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div><div class="ctrl-title">Group Members</div><div class="ctrl-desc">Roster &amp; command crew</div></div>
+      <div class="ctrl-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div id="listView">
+  <div class="table-section-label">Device Status &mdash; 8 devices total &middot; 3 flagged</div>
+  <div class="device-table-wrap">
+
+    <!-- HEADER — 11-col grid; Actions spans Swap+Resync via CSS subgrid trick -->
+    <!-- We use a wrapper for the header only that has 10 cols (merging swap+resync into one "Actions" label) -->
+    <div style="display:grid;grid-template-columns:minmax(80px,1fr) minmax(100px,1.2fr) minmax(76px,.85fr) minmax(88px,1fr) minmax(76px,.85fr) minmax(90px,1.1fr) minmax(78px,.9fr) minmax(70px,.8fr) 160px 36px;align-items:center;width:100%;background:#FAFBFC;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px 10px 16px;">Device</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Personnel</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Area</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Connection</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Channel</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Recording</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Battery</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 8px;">Sync</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);padding:10px 4px;text-align:center;border-left:1px solid var(--border);">Actions</div>
+      <div style="padding:10px 4px;border-left:1px solid var(--border);"></div>
+    </div>
+
+    <!-- HIGH RISK -->
+    <div class="dt-section-header high"><span class="sh-dot"></span>High risk &middot; 3 devices</div>
+
+    <div class="dt-row risk-high dt-grid">
+      <div class="dt-cell device-id-cell">BWC-B04</div>
+      <div class="dt-cell" title="John Acuri">John Acuri</div>
+      <div class="dt-cell" title="Layer 1 - ER">L1 &ndash; ER</div>
+      <div class="dt-cell"><span class="field-flag" title="Fake online">Fake online</span></div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B04" data-channel="Channel 4" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 4</button></div>
+      <div class="dt-cell"><button class="rec-link flagged" onclick="openRecModal('BWC-B04','Stuck','high')">Stuck</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill mid" style="width:41%"></div></div><span class="bat-val">41%</span></div></div>
+      <div class="dt-cell"><span class="field-flag">Sync delay</span></div>
+      <div class="dt-cell op"><button class="cta swap-high" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-high" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m1"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-high dt-grid">
+      <div class="dt-cell device-id-cell">BWC-B07</div>
+      <div class="dt-cell" title="Lena Ortiz">Lena Ortiz</div>
+      <div class="dt-cell" title="Layer 1 - ER">L1 &ndash; ER</div>
+      <div class="dt-cell"><span class="field-flag" title="Disconnected">Disconnected</span></div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B07" data-channel="Channel 2" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 2</button></div>
+      <div class="dt-cell"><button class="rec-link flagged" onclick="openRecModal('BWC-B07','Off','high')">Off</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill low" style="width:12%"></div></div><span class="bat-val">12%</span></div></div>
+      <div class="dt-cell"><span class="field-flag">Sync delay</span></div>
+      <div class="dt-cell op"><button class="cta swap-high" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-high" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m2"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-high dt-grid">
+      <div class="dt-cell device-id-cell">BWC-B11</div>
+      <div class="dt-cell" title="Marcus Webb">Marcus Webb</div>
+      <div class="dt-cell" title="Layer 3 - OB">L3 &ndash; OB</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B11" data-channel="Channel 3" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 3</button></div>
+      <div class="dt-cell"><button class="rec-link flagged" onclick="openRecModal('BWC-B11','Susp. omission','high')" title="Suspected recording omission">Susp. omission</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:68%"></div></div><span class="bat-val">68%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-high" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-high" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m3"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <!-- NORMAL -->
+    <div class="dt-section-header normal"><span class="sh-dot"></span>Normal &middot; 5 devices</div>
+
+    <div class="dt-row risk-normal dt-grid">
+      <div class="dt-cell device-id-cell" style="color:var(--text)">BWC-B02</div>
+      <div class="dt-cell" title="Priya Nair">Priya Nair</div>
+      <div class="dt-cell" title="Layer 2 - General">L2 &ndash; General</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B02" data-channel="Channel 1" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 1</button></div>
+      <div class="dt-cell"><button class="rec-link" onclick="openRecModal('BWC-B02','Filming','normal')">Filming</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:87%"></div></div><span class="bat-val">87%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-normal" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-normal" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m4"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-normal dt-grid">
+      <div class="dt-cell device-id-cell" style="color:var(--text)">BWC-B09</div>
+      <div class="dt-cell" title="Tomas Reyes">Tomas Reyes</div>
+      <div class="dt-cell" title="Layer 5 - Rooms">L5 &ndash; Rooms</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B09" data-channel="Channel 2" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 2</button></div>
+      <div class="dt-cell"><button class="rec-link" onclick="openRecModal('BWC-B09','Filming','normal')">Filming</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:73%"></div></div><span class="bat-val">73%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-normal" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-normal" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m5"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-normal dt-grid">
+      <div class="dt-cell device-id-cell" style="color:var(--text)">BWC-B03</div>
+      <div class="dt-cell" title="Jeff Acuri">Jeff Acuri</div>
+      <div class="dt-cell" title="Layer 6 - Kids">L6 &ndash; Kids</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B03" data-channel="Channel 4" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 4</button></div>
+      <div class="dt-cell"><button class="rec-link" onclick="openRecModal('BWC-B03','Filming','normal')">Filming</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:60%"></div></div><span class="bat-val">60%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-normal" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-normal" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m6"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-normal dt-grid">
+      <div class="dt-cell device-id-cell" style="color:var(--text)">BWC-B06</div>
+      <div class="dt-cell" title="Jason Chen">Jason Chen</div>
+      <div class="dt-cell" title="Layer 6 - Kids">L6 &ndash; Kids</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B06" data-channel="Channel 2" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 2</button></div>
+      <div class="dt-cell"><button class="rec-link" onclick="openRecModal('BWC-B06','Filming','normal')">Filming</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:82%"></div></div><span class="bat-val">82%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-normal" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-normal" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m7"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+    <div class="dt-row risk-normal dt-grid">
+      <div class="dt-cell device-id-cell" style="color:var(--text)">BWC-B12</div>
+      <div class="dt-cell" title="Catherine Collen">Catherine Collen</div>
+      <div class="dt-cell" title="Layer 8 - VIP">L8 &ndash; VIP</div>
+      <div class="dt-cell">Online</div>
+      <div class="dt-cell"><button class="ch-chip" data-device="BWC-B12" data-channel="Channel 1" onclick="openChannelModal(this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>Ch 1</button></div>
+      <div class="dt-cell"><button class="rec-link" onclick="openRecModal('BWC-B12','Filming','normal')">Filming</button></div>
+      <div class="dt-cell"><div class="battery-wrap"><div class="bat-bg"><div class="bat-fill" style="width:91%"></div></div><span class="bat-val">91%</span></div></div>
+      <div class="dt-cell">Normal</div>
+      <div class="dt-cell op"><button class="cta swap-normal" onclick="openGModal('swap')">Swap</button></div>
+      <div class="dt-cell op"><button class="cta resync-normal" onclick="openGModal('resync')">Resync</button></div>
+      <div class="dt-cell op-menu"><button class="menu-btn" data-menu="m8"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></div>
+    </div>
+
+  </div><!-- /device-table-wrap -->
+</div><!-- /listView -->
+
+<!-- MAP VIEW -->
+<div id="mapView">
+  <div class="map-wrap" id="mapWrap">
+    <div class="map-container" id="mapContainer">
+      <div class="floor-plan">
+        <div class="floor-row" style="flex:.75">
+          <div class="floor-zone has-risk" style="flex:.44"><span class="zone-label risk">L1 &middot; Entrance</span></div>
+          <div class="floor-zone has-risk" style="flex:1.56"><span class="zone-label risk">L1 &middot; Emergency Room</span></div>
+        </div>
+        <div class="floor-row" style="flex:.75">
+          <div class="floor-zone" style="flex:.9"><span class="zone-label">L2 &middot; General Ward</span></div>
+          <div class="floor-zone" style="flex:1.1"><span class="zone-label">L2 &middot; Outpatient</span></div>
+        </div>
+        <div class="floor-row" style="flex:.7">
+          <div class="floor-zone has-risk" style="flex:1"><span class="zone-label risk">L3 &middot; OB / Maternity</span></div>
+          <div class="floor-zone" style="flex:1"><span class="zone-label">L4 &middot; Surgery</span></div>
+        </div>
+        <div class="floor-row" style="flex:.7">
+          <div class="floor-zone" style="flex:1.3"><span class="zone-label">L5 &middot; Patient Rooms</span></div>
+          <div class="floor-zone" style="flex:.7"><span class="zone-label">L7 &middot; Cardiac / Specialist</span></div>
+        </div>
+        <div class="floor-row" style="flex:.7">
+          <div class="floor-zone" style="flex:1.2"><span class="zone-label">L6 &middot; Pediatrics</span></div>
+          <div class="floor-zone" style="flex:.8"><span class="zone-label">L8 &middot; VIP Rooms</span></div>
+        </div>
+      </div>
+      <div class="officer-dot red-dot has-warning" style="top:9%;left:46%" data-id="BWC-B04" data-name="John Acuri" data-area="L1 - ER" data-conn="Fake online" data-rec="Stuck" data-bat="41" data-sync="Sync delay" data-risk="high" data-channel="Channel 4"></div>
+      <div class="officer-dot red-dot has-warning" style="top:9%;left:66%" data-id="BWC-B07" data-name="Lena Ortiz" data-area="L1 - ER" data-conn="Disconnected" data-rec="Off" data-bat="12" data-sync="Sync delay" data-risk="high" data-channel="Channel 2"></div>
+      <div class="officer-dot red-dot has-warning" style="top:50%;left:26%" data-id="BWC-B11" data-name="Marcus Webb" data-area="L3 - OB" data-conn="Online" data-rec="Susp. omission" data-bat="68" data-sync="Normal" data-risk="high" data-channel="Channel 3"></div>
+      <div class="officer-dot green-dot" style="top:26%;left:22%" data-id="BWC-B02" data-name="Priya Nair" data-area="L2 - General" data-conn="Online" data-rec="Filming" data-bat="87" data-sync="Normal" data-risk="normal" data-channel="Channel 1"></div>
+      <div class="officer-dot green-dot" style="top:65%;left:20%" data-id="BWC-B09" data-name="Tomas Reyes" data-area="L5 - Rooms" data-conn="Online" data-rec="Filming" data-bat="73" data-sync="Normal" data-risk="normal" data-channel="Channel 2"></div>
+      <div class="officer-dot green-dot" style="top:83%;left:16%" data-id="BWC-B03" data-name="Jeff Acuri" data-area="L6 - Kids" data-conn="Online" data-rec="Filming" data-bat="60" data-sync="Normal" data-risk="normal" data-channel="Channel 4"></div>
+      <div class="officer-dot green-dot" style="top:83%;left:34%" data-id="BWC-B06" data-name="Jason Chen" data-area="L6 - Kids" data-conn="Online" data-rec="Filming" data-bat="82" data-sync="Normal" data-risk="normal" data-channel="Channel 2"></div>
+      <div class="officer-dot green-dot" style="top:83%;left:76%" data-id="BWC-B12" data-name="Catherine Collen" data-area="L8 - VIP" data-conn="Online" data-rec="Filming" data-bat="91" data-sync="Normal" data-risk="normal" data-channel="Channel 1"></div>
+      <div class="map-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--alert)"></div>High risk</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Normal</div>
+        <div class="legend-item" style="color:var(--text-faint);font-style:italic">Click dot to inspect</div>
+      </div>
+    </div>
+    <div class="map-side-panel" id="mapSidePanel">
+      <div class="msp-inner" id="mspInner"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /page -->
+
+<div class="cursor-tooltip" id="cursorTooltip"></div>
+
+<!-- FLOATING DROPDOWN — singleton, position:fixed, never clipped by table overflow -->
+<div id="floatingDropdown"></div>
+
+<!-- RECORDING MODAL -->
+<div class="modal-overlay" id="recModal">
+  <div class="modal-box" style="max-width:560px">
+    <button class="modal-close" id="recModalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="modal-title" id="recModalTitle"></div>
+    <div class="modal-sub" id="recModalSub"></div>
+    <div class="modal-stream">
+      <div class="modal-stream-live" id="recModalLive"><span class="live-dot"></span>LIVE</div>
+      <div class="modal-stream-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div>
+    </div>
+    <div class="modal-footer"><button class="modal-btn" id="recModalClose2">Close</button></div>
+  </div>
+</div>
+
+<!-- CHANNEL PICKER MODAL -->
+<div class="modal-overlay" id="chModal">
+  <div class="ch-modal-box">
+    <button class="modal-close" id="chModalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="ch-modal-title">Switch Channel</div>
+    <div class="ch-modal-sub" id="chModalSub">Select a new transmission channel for this device.</div>
+    <div class="ch-options" id="chOptions"></div>
+    <div class="ch-modal-footer">
+      <button class="modal-btn" id="chModalCancel">Cancel</button>
+      <button class="modal-btn primary" id="chModalConfirm">Confirm Switch</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERRIDE / REPORT MODAL -->
+<div class="modal-overlay" id="vrModal">
+  <div class="vr-modal-box">
+    <button class="modal-close" id="vrModalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="vr-modal-title" id="vrModalTitle"></div>
+    <div class="vr-modal-desc" id="vrModalDesc"></div>
+    <div class="vr-modal-label">Justification</div>
+    <textarea class="vr-modal-textarea" id="vrModalTxt" placeholder="Enter reason for this action..."></textarea>
+    <div class="vr-modal-note" id="vrModalNote">&#9888; This action will be irreversibly written into the Audit Trail.</div>
+    <div class="vr-modal-footer">
+      <button class="modal-btn" id="vrModalCancel">Cancel</button>
+      <button class="modal-btn primary" id="vrModalSubmit">Submit &amp; Write to Audit Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- GENERIC MODAL (audit, timeline, members, actions) -->
+<div class="modal-overlay" id="gModal">
+  <div class="gmodal-box">
+    <button class="modal-close" id="gModalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    <div class="gmodal-title" id="gModalTitle"></div>
+    <div class="gmodal-scroll" id="gModalContent"></div>
+    <button class="gmodal-btn" id="gModalOk">Close</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ================================================================
+   SHARED STATE
+   ================================================================ */
+var auditLog = [
+  {ts:'2026-07-05 06:14:33 UTC', actor:'System (Auto)',    action:'Force Sync \u2014 Channel 2',                       outcome:'failed',  just:''},
+  {ts:'2026-07-05 05:58:11 UTC', actor:'Sammy Leung (CC)', action:'Device check initiated \u2014 BWC-B07',              outcome:'success', just:''},
+  {ts:'2026-07-05 05:41:02 UTC', actor:'System (Auto)',    action:'Anomaly detected \u2014 BWC-B04 fake online status',  outcome:'success', just:''},
+  {ts:'2026-07-05 05:30:00 UTC', actor:'System',           action:'Mission group GROUP B activated',                    outcome:'success', just:''}
+];
+
+var DEVICES = {
+  'BWC-B04':{name:'John Acuri',       area:'L1 \u2013 ER',      conn:'Fake online',   rec:'Stuck',          bat:41,  sync:'Sync delay', risk:'high',   channel:'Channel 4'},
+  'BWC-B07':{name:'Lena Ortiz',       area:'L1 \u2013 ER',      conn:'Disconnected',  rec:'Off',            bat:12,  sync:'Sync delay', risk:'high',   channel:'Channel 2'},
+  'BWC-B11':{name:'Marcus Webb',      area:'L3 \u2013 OB',      conn:'Online',        rec:'Susp. omission', bat:68,  sync:'Normal',     risk:'high',   channel:'Channel 3'},
+  'BWC-B02':{name:'Priya Nair',       area:'L2 \u2013 General', conn:'Online',        rec:'Filming',        bat:87,  sync:'Normal',     risk:'normal', channel:'Channel 1'},
+  'BWC-B09':{name:'Tomas Reyes',      area:'L5 \u2013 Rooms',   conn:'Online',        rec:'Filming',        bat:73,  sync:'Normal',     risk:'normal', channel:'Channel 2'},
+  'BWC-B03':{name:'Jeff Acuri',       area:'L6 \u2013 Kids',    conn:'Online',        rec:'Filming',        bat:60,  sync:'Normal',     risk:'normal', channel:'Channel 4'},
+  'BWC-B06':{name:'Jason Chen',       area:'L6 \u2013 Kids',    conn:'Online',        rec:'Filming',        bat:82,  sync:'Normal',     risk:'normal', channel:'Channel 2'},
+  'BWC-B12':{name:'Catherine Collen', area:'L8 \u2013 VIP',     conn:'Online',        rec:'Filming',        bat:91,  sync:'Normal',     risk:'normal', channel:'Channel 1'}
+};
+
+var ALL_CHANNELS = [
+  {id:'Channel 1', label:'Channel 1', note:'Primary tactical'},
+  {id:'Channel 2', label:'Channel 2', note:'Secondary / backup'},
+  {id:'Channel 3', label:'Channel 3', note:'Medical wing relay'},
+  {id:'Channel 4', label:'Channel 4', note:'Command direct'},
+  {id:'Channel 5', label:'Channel 5', note:'Emergency reserved'},
+  {id:'Channel 6', label:'Channel 6', note:'Admin / facility'}
+];
+
+/* ================================================================
+   VIEW TOGGLE
+   ================================================================ */
+window.switchView = function(v) {
+  document.getElementById('listView').style.display = v === 'list' ? 'block' : 'none';
+  document.getElementById('mapView').style.display  = v === 'map'  ? 'block' : 'none';
+  document.getElementById('btnList').classList.toggle('active', v === 'list');
+  document.getElementById('btnMap').classList.toggle('active',  v === 'map');
+};
+
+/* ================================================================
+   FLOATING SINGLETON DROPDOWN
+   All 8 menu buttons share one <div id="floatingDropdown"> on <body>.
+   Position is calculated via getBoundingClientRect so overflow:hidden
+   on the table can never clip it.
+   ================================================================ */
+function dmIcon(path) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
+}
+
+var DM_HTML = (
+  '<div class="dm-section-label">Verification</div>' +
+  '<div class="dm-item danger" data-vr="override">' + dmIcon('<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>') + 'Override status</div>' +
+  '<div class="dm-item amber-item" data-vr="report">' + dmIcon('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>') + 'Report anomaly</div>' +
+  '<div class="dm-divider"></div>' +
+  '<div class="dm-item" data-modal="comm">' + dmIcon('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>') + 'Communication log</div>' +
+  '<div class="dm-item" data-modal="syslog">' + dmIcon('<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>') + 'System log</div>' +
+  '<div class="dm-item" data-modal="audit">' + dmIcon('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>') + 'Audit log</div>' +
+  '<div class="dm-item" data-modal="logs">' + dmIcon('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>') + 'Download logs</div>' +
+  '<div class="dm-divider"></div>' +
+  '<div class="dm-section-label">Response</div>' +
+  '<div class="dm-item" data-modal="call">' + dmIcon('<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.27a16 16 0 0 0 6.72 6.72l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>') + 'Call officer</div>' +
+  '<div class="dm-item" data-modal="chat">' + dmIcon('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>') + 'Open chat with officer</div>' +
+  '<div class="dm-item" data-modal="warn">' + dmIcon('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>') + 'Warning trigger</div>' +
+  '<div class="dm-item" data-modal="memo">' + dmIcon('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>') + 'Memo</div>' +
+  '<div class="dm-item" data-modal="escalate">' + dmIcon('<polyline points="18 15 12 9 6 15"/>') + 'Support escalation</div>'
+);
+
+var floatingDM      = document.getElementById('floatingDropdown');
+var openMenuBtn     = null;   /* the .menu-btn that opened the dropdown */
+var openMenuDeviceId = null;  /* device context for Override/Report */
+
+floatingDM.innerHTML = DM_HTML;
+
+function positionDropdown(btn) {
+  var r   = btn.getBoundingClientRect();
+  var dmW = 252;
+  /* prefer right-aligned; flip left if not enough room */
+  var left = r.right - dmW;
+  if (left < 8) left = r.left;
+  /* prefer below; flip above if not enough room below fold */
+  var top = r.bottom + 4;
+  var dmH = floatingDM.offsetHeight || 380; /* estimate if not rendered yet */
+  if (top + dmH > window.innerHeight - 8) top = r.top - dmH - 4;
+  floatingDM.style.left = left + 'px';
+  floatingDM.style.top  = top  + 'px';
+}
+
+function closeFloatingDM() {
+  floatingDM.classList.remove('open');
+  openMenuBtn = null;
+}
+
+document.addEventListener('click', function(e) {
+  /* ── 3-dot button toggle ── */
+  var btn = e.target.closest('.menu-btn');
+  if (btn) {
+    e.stopPropagation();
+    if (openMenuBtn === btn) {
+      closeFloatingDM();
+      return;
+    }
+    /* derive device ID from the row */
+    var row = btn.closest('.dt-row');
+    openMenuDeviceId = row ? ((row.querySelector('.device-id-cell') || {}).textContent || '').trim() : null;
+    openMenuBtn = btn;
+    floatingDM.classList.add('open');
+    positionDropdown(btn);
+    return;
+  }
+
+  /* ── Override / Report → modal ── */
+  var vrItem = e.target.closest('[data-vr]');
+  if (vrItem && floatingDM.classList.contains('open')) {
+    var vrType = vrItem.getAttribute('data-vr');
+    closeFloatingDM();
+    openVrModal(vrType, openMenuDeviceId);
+    return;
+  }
+
+  /* ── Generic modal items ── */
+  var dmItem = e.target.closest('.dm-item[data-modal]');
+  if (dmItem && floatingDM.classList.contains('open')) {
+    closeFloatingDM();
+    openGModal(dmItem.getAttribute('data-modal'));
+    return;
+  }
+
+  /* ── Close on outside click ── */
+  if (!floatingDM.contains(e.target)) {
+    closeFloatingDM();
+  }
+});
+
+/* Reposition on scroll/resize so it stays anchored */
+window.addEventListener('scroll', function() {
+  if (openMenuBtn && floatingDM.classList.contains('open')) {
+    positionDropdown(openMenuBtn);
+  }
+}, true);
+window.addEventListener('resize', function() {
+  if (openMenuBtn && floatingDM.classList.contains('open')) {
+    positionDropdown(openMenuBtn);
+  }
+});
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+function showToast(msg) {
+  var t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:12.5px;font-weight:600;padding:9px 18px;border-radius:8px;z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none;';
+  document.body.appendChild(t);
+  requestAnimationFrame(function() { t.style.opacity = '1'; });
+  setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2800);
+}
+
+/* ================================================================
+   RECORDING MODAL
+   ================================================================ */
+window.openRecModal = function(id, status, risk) {
+  var isLive = status === 'Filming';
+  document.getElementById('recModalTitle').textContent  = id + ' \u2014 Recording Status';
+  document.getElementById('recModalSub').textContent    = isLive ? 'Live body-cam feed.' : 'Last available clip. Recording state: ' + status + '.';
+  document.getElementById('recModalLive').style.display = isLive ? 'inline-flex' : 'none';
+  document.getElementById('recModal').classList.add('open');
+};
+function closeRecModal() { document.getElementById('recModal').classList.remove('open'); }
+document.getElementById('recModalClose').addEventListener('click', closeRecModal);
+document.getElementById('recModalClose2').addEventListener('click', closeRecModal);
+document.getElementById('recModal').addEventListener('click', function(e){ if(e.target===this) closeRecModal(); });
+
+/* ================================================================
+   CHANNEL MODAL
+   ================================================================ */
+var chTarget = null; /* the ch-chip button element */
+
+window.openChannelModal = function(chipBtn) {
+  chTarget = chipBtn;
+  var devId   = chipBtn.getAttribute('data-device');
+  var current = chipBtn.getAttribute('data-channel');
+  var d       = DEVICES[devId];
+
+  document.getElementById('chModalSub').textContent =
+    (d ? d.name + ' (' + devId + ')' : devId) + ' \u2014 current: ' + current;
+
+  var opts = document.getElementById('chOptions');
+  opts.innerHTML = '';
+  ALL_CHANNELS.forEach(function(ch) {
+    var btn = document.createElement('button');
+    btn.className = 'ch-option' + (ch.id === current ? ' current' : '');
+    btn.setAttribute('data-ch', ch.id);
+    btn.innerHTML = ch.label + '<span class="ch-sub">' + ch.note + (ch.id === current ? ' \u2014 active' : '') + '</span>';
+    btn.addEventListener('click', function() {
+      opts.querySelectorAll('.ch-option').forEach(function(b){ b.classList.remove('selected'); });
+      btn.classList.add('selected');
+    });
+    opts.appendChild(btn);
+  });
+  document.getElementById('chModal').classList.add('open');
+};
+
+function closeChModal() { document.getElementById('chModal').classList.remove('open'); chTarget = null; }
+document.getElementById('chModalClose').addEventListener('click', closeChModal);
+document.getElementById('chModalCancel').addEventListener('click', closeChModal);
+document.getElementById('chModal').addEventListener('click', function(e){ if(e.target===this) closeChModal(); });
+
+document.getElementById('chModalConfirm').addEventListener('click', function() {
+  var selected = document.getElementById('chOptions').querySelector('.ch-option.selected');
+  if (!selected) { showToast('Select a channel first.'); return; }
+  var newCh  = selected.getAttribute('data-ch');
+  var devId  = chTarget ? chTarget.getAttribute('data-device') : null;
+  var oldCh  = chTarget ? chTarget.getAttribute('data-channel') : 'unknown';
+  if (newCh === oldCh) { closeChModal(); return; }
+
+  /* Update chip label — table chip or side panel chip */
+  if (chTarget) {
+    chTarget.setAttribute('data-channel', newCh);
+    var isSidePanel = chTarget.id === 'mspChBtn';
+    if (isSidePanel) {
+      /* rebuild side panel chip label */
+      var svgEl2 = chTarget.querySelector('svg');
+      chTarget.innerHTML = '';
+      if (svgEl2) chTarget.appendChild(svgEl2);
+      chTarget.appendChild(document.createTextNode(newCh + ' '));
+      var changeSpan = document.createElement('span');
+      changeSpan.style.cssText = 'font-size:10px;font-family:\'IBM Plex Sans\',sans-serif;font-weight:400;color:var(--primary);margin-left:3px;';
+      changeSpan.innerHTML = '&#9654; Change';
+      chTarget.appendChild(changeSpan);
+    } else {
+      /* table chip — keep SVG, replace short label */
+      var txt = newCh.replace('Channel ', 'Ch ');
+      var svgEl = chTarget.querySelector('svg');
+      chTarget.textContent = txt;
+      if (svgEl) chTarget.insertBefore(svgEl, chTarget.firstChild);
+    }
+  }
+  /* Update DEVICES store */
+  if (devId && DEVICES[devId]) { DEVICES[devId].channel = newCh; }
+
+  /* Write to audit log */
+  var now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  auditLog.unshift({
+    ts:      now,
+    actor:   'Sammy Leung (CC)',
+    action:  'Channel switched: ' + (devId || 'unknown') + ' \u2014 ' + oldCh + ' \u2192 ' + newCh,
+    outcome: 'success',
+    just:    ''
+  });
+
+  closeChModal();
+  showToast('Channel switched to ' + newCh + '. Logged to Audit Trail.');
+});
+
+/* ================================================================
+   OVERRIDE / REPORT MODAL
+   ================================================================ */
+var vrActiveType   = null;
+var vrActiveDevice = null;
+
+function openVrModal(type, devId) {
+  vrActiveType   = type;
+  vrActiveDevice = devId;
+  var isOvr = type === 'override';
+  var dName = (devId && DEVICES[devId]) ? DEVICES[devId].name + ' (' + devId + ')' : (devId || 'this device');
+  document.getElementById('vrModalTitle').textContent = isOvr ? 'Override Status' : 'Report Anomaly';
+  document.getElementById('vrModalDesc').textContent  = isOvr
+    ? 'Manually change the system status for ' + dName + '. Provide a justification for this status override — this entry is permanent, cannot be edited.'
+    : 'Log a suspected anomaly for ' + dName + ' that the system has not flagged. The current device status will remain unchanged. Provide a full description of the observed behavior — this entry is permanent and cannot be edited.';
+  document.getElementById('vrModalTxt').value = '';
+  document.getElementById('vrModalTxt').style.borderColor = '';
+  document.getElementById('vrModalSubmit').className = isOvr ? 'modal-btn danger' : 'modal-btn primary';
+  document.getElementById('vrModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('vrModalTxt').focus(); }, 80);
+}
+
+function closeVrModal() {
+  document.getElementById('vrModal').classList.remove('open');
+  vrActiveType = null; vrActiveDevice = null;
+}
+
+document.getElementById('vrModalClose').addEventListener('click', closeVrModal);
+document.getElementById('vrModalCancel').addEventListener('click', closeVrModal);
+document.getElementById('vrModal').addEventListener('click', function(e){ if(e.target===this) closeVrModal(); });
+
+document.getElementById('vrModalSubmit').addEventListener('click', function() {
+  var txt    = document.getElementById('vrModalTxt');
+  var reason = txt.value.trim();
+  if (!reason) { txt.style.borderColor = 'var(--alert)'; txt.focus(); return; }
+  var now   = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  var isOvr = vrActiveType === 'override';
+  auditLog.unshift({
+    ts:      now,
+    actor:   'Sammy Leung (CC)',
+    action:  isOvr
+      ? 'Manual Override: status forced to Normal \u2014 ' + (vrActiveDevice || 'unknown')
+      : 'Manual Anomaly Report \u2014 ' + (vrActiveDevice || 'unknown'),
+    outcome: isOvr ? 'success' : 'pending',
+    just:    reason
+  });
+  closeVrModal();
+  showToast(isOvr ? 'Override recorded in Audit Log.' : 'Anomaly report recorded in Audit Log.');
+});
+
+/* ================================================================
+   GENERIC MODAL
+   ================================================================ */
+function buildAuditHTML() {
+  var h = '<ul class="audit-list">';
+  auditLog.forEach(function(a) {
+    h += '<li class="audit-item">' +
+      '<span class="a-ts">' + a.ts + '</span>' +
+      '<span class="a-actor">' + a.actor + '</span>' +
+      '<span class="a-action">' + a.action + '</span>' +
+      '<span class="a-outcome ' + a.outcome + '">' + (a.outcome==='success'?'\u2713 Success':a.outcome==='failed'?'\u2715 Failed':'\u25cf Pending') + '</span>' +
+      (a.just ? '<span class="a-justification">Justification: ' + a.just + '</span>' : '') +
+      '</li>';
+  });
+  return h + '</ul>';
+}
+
+function buildTimelineHTML() {
+  var events = [
+    {ts:'2026-07-05 06:14:33 UTC', type:'system',  text:'Auto force-sync on Channel 2 \u2014 Failed'},
+    {ts:'2026-07-05 06:10:05 UTC', type:'warning', text:'BWC-B04 flagged: Fake online status detected'},
+    {ts:'2026-07-05 06:04:18 UTC', type:'comms',   text:'Sammy Leung sent memo to Group B leader'},
+    {ts:'2026-07-05 05:58:11 UTC', type:'system',  text:'Device check initiated on BWC-B07'},
+    {ts:'2026-07-05 05:41:02 UTC', type:'warning', text:'Anomaly alert: BWC-B04 sync failure 40 min'},
+    {ts:'2026-07-05 05:30:00 UTC', type:'system',  text:'Mission group GROUP B activated'}
+  ];
+  var labels = {system:'System Event', warning:'Warning / Alert', comms:'Team Communication'};
+  var h = '<div class="timeline-filters">' +
+    '<label class="tf-check"><input type="checkbox" checked onchange="filterTL()"> System Events</label>' +
+    '<label class="tf-check"><input type="checkbox" checked onchange="filterTL()"> Warnings/Alerts</label>' +
+    '<label class="tf-check"><input type="checkbox" checked onchange="filterTL()"> Team Communications</label>' +
+    '</div><div id="tlList">';
+  events.forEach(function(ev, i) {
+    h += '<div class="tl-item" data-type="' + ev.type + '" id="tl' + i + '">' +
+      '<div class="tl-dot-col"><div class="tl-dot ' + ev.type + '"></div></div>' +
+      '<div class="tl-body"><div class="tl-ts">' + ev.ts + '</div><div class="tl-text">' + ev.text + '</div>' +
+      '<div class="tl-tag ' + ev.type + '">' + labels[ev.type] + '</div></div></div>';
+  });
+  return h + '</div>';
+}
+
+function buildMembersHTML() {
+  var members = [
+    {role:'Group Leader',   name:'Alex Muller',      device:'BWC-B01',     area:'Mobile',            leader:true},
+    {role:'Command Center', name:'Sammy Leung',       device:'CC-Station-1',area:'Control Room',      leader:false},
+    {role:'Command Center', name:'Tanya Sipowitz',    device:'CC-Station-2',area:'Control Room',      leader:false},
+    {role:'Field Officer',  name:'John Acuri',        device:'BWC-B04',     area:'L1 \u2013 ER',      leader:false},
+    {role:'Field Officer',  name:'Lena Ortiz',        device:'BWC-B07',     area:'L1 \u2013 ER',      leader:false},
+    {role:'Field Officer',  name:'Marcus Webb',       device:'BWC-B11',     area:'L3 \u2013 OB',      leader:false},
+    {role:'Field Officer',  name:'Priya Nair',        device:'BWC-B02',     area:'L2 \u2013 General', leader:false},
+    {role:'Field Officer',  name:'Tomas Reyes',       device:'BWC-B09',     area:'L5 \u2013 Rooms',   leader:false},
+    {role:'Field Officer',  name:'Jeff Acuri',        device:'BWC-B03',     area:'L6 \u2013 Kids',    leader:false},
+    {role:'Field Officer',  name:'Jason Chen',        device:'BWC-B06',     area:'L6 \u2013 Kids',    leader:false},
+    {role:'Field Officer',  name:'Catherine Collen',  device:'BWC-B12',     area:'L8 \u2013 VIP',     leader:false}
+  ];
+  var h = '<div class="team-grid">';
+  members.forEach(function(m) {
+    h += '<div class="member-card' + (m.leader?' leader':'') + '">' +
+      '<div class="mc-role">' + m.role + '</div><div class="mc-name">' + m.name + '</div>' +
+      '<div class="mc-device">' + m.device + '</div><div class="mc-area">' + m.area + '</div></div>';
+  });
+  return h + '</div>';
+}
+
+var gDefs = {
+  audit:    {title:'Audit Report \u2014 GROUP B',        body: buildAuditHTML},
+  timeline: {title:'Incident Timeline \u2014 GROUP B',   body: buildTimelineHTML},
+  members:  {title:'Group Members \u2014 GROUP B',       body: buildMembersHTML},
+  swap:     {title:'Swap Device',     body:'<p class="gmodal-desc">Initiates a device swap workflow. A replacement unit will be dispatched to the officer\'s current area. This action is irreversibly written into the Audit Log.</p>'},
+  resync:   {title:'Resync Device',   body:'<p class="gmodal-desc">Manually triggers the full diagnostic and re-sync process. The device will attempt to re-establish connection, flush its buffer, and confirm recording state. Expected completion: 30\u201390 seconds.</p>'},
+  logs:     {title:'Download Logs \u2014 Diagnostic Package', body:'<p class="gmodal-desc">Generates a full diagnostic log bundle including connection history, recording state transitions, battery events, and sync attempts for the last 4 hours. The package will be available in System Log.</p>'},
+  comm:     {title:'Communication Log \u2014 GROUP B',   body:'<p class="gmodal-desc">Full communication record including in-app chat, call history, and memos between command center crew and field officers.</p>'},
+  syslog:   {title:'System Log \u2014 GROUP B',          body:'<p class="gmodal-desc">Application and device-level system logs. Includes connection events, firmware states, sync attempts, and error codes for each device in the group.</p>'},
+  call:     {title:'Call Officer',    body:'<p class="gmodal-desc">Opens an encrypted voice call to the officer\'s assigned channel. All call metadata will be logged in the Communication Log.</p>'},
+  chat:     {title:'Open Chat',       body:'<p class="gmodal-desc">Opens the in-app secure messaging thread. Messages are end-to-end encrypted and logged in the Communication Log.</p>'},
+  warn:     {title:'Warning Trigger', body:'<p class="gmodal-desc">Sends an immediate alert signal to the officer\'s device. The device will vibrate and display a warning indicator. Logged in the Audit Trail.</p>'},
+  memo:     {title:'Memo',            body:'<p class="gmodal-desc">Opens a memo composer to attach a timestamped note. Memos are visible in the Communication Log.</p>'},
+  escalate: {title:'Support Escalation', body:'<p class="gmodal-desc">Escalates to technical support. A ticket is created with current device state, logs, and action history. Case number issued within 5 minutes.</p>'}
+};
+
+window.openGModal = function(type) {
+  var def = gDefs[type]; if (!def) return;
+  document.getElementById('gModalTitle').textContent = def.title;
+  document.getElementById('gModalContent').innerHTML = typeof def.body === 'function' ? def.body() : def.body;
+  document.getElementById('gModal').classList.add('open');
+};
+
+window.filterTL = function() {
+  var cbs = document.querySelectorAll('.timeline-filters input');
+  var types = ['system','warning','comms'];
+  cbs.forEach(function(cb, i) {
+    document.querySelectorAll('.tl-item[data-type="' + types[i] + '"]').forEach(function(r) {
+      r.style.display = cb.checked ? 'flex' : 'none';
+    });
+  });
+};
+
+document.getElementById('gModalClose').addEventListener('click', function(){ document.getElementById('gModal').classList.remove('open'); });
+document.getElementById('gModalOk').addEventListener('click',    function(){ document.getElementById('gModal').classList.remove('open'); });
+document.getElementById('gModal').addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+
+/* ================================================================
+   MAP: cursor tooltip + side panel
+   ================================================================ */
+var tooltip    = document.getElementById('cursorTooltip');
+var activePanel = null;
+
+document.querySelectorAll('.officer-dot').forEach(function(dot) {
+  var d = dot.dataset;
+  dot.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+  dot.addEventListener('mouseenter', function() {
+    tooltip.innerHTML = (d.risk==='high'?'\u26a0 ':'')+d.name+' &middot; '+d.id+'<br>'+d.conn+' &middot; '+d.rec;
+    tooltip.style.display = 'block';
+  });
+  dot.addEventListener('mousemove', function(e) {
+    tooltip.style.left = (e.clientX+14)+'px';
+    tooltip.style.top  = (e.clientY+14)+'px';
+  });
+  dot.addEventListener('mouseleave', function(){ tooltip.style.display='none'; });
+  dot.addEventListener('click', function(){
+    tooltip.style.display='none';
+    openSidePanel(d.id);
+  });
+});
+
+function openSidePanel(devId) {
+  var d = DEVICES[devId]; if (!d) return;
+  activePanel = devId;
+  var isHigh   = d.risk === 'high';
+  var batClass = d.bat < 20 ? 'low' : d.bat < 50 ? 'mid' : '';
+  var fConn    = d.conn === 'Fake online' || d.conn === 'Disconnected';
+  var fRec     = d.rec !== 'Filming';
+  var mono     = "font-family:'IBM Plex Mono',monospace;font-size:12px";
+
+  var html =
+    '<div class="msp-close-bar">' +
+      '<span class="msp-close-label">Device Detail</span>' +
+      '<button class="msp-close-btn" id="mspCloseBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
+    '</div>' +
+    '<div class="msp-body">' +
+      '<div class="msp-officer-name">' + d.name.toUpperCase() + '</div>' +
+      '<div class="msp-device-meta">' +
+        '<span><span class="meta-label">Device ID</span><span style="' + mono + '">' + devId + '</span></span>' +
+        '<span><span class="meta-label">Area</span>' + d.area + '</span>' +
+        '<span><span class="meta-label">Channel</span>' + d.channel + '</span>' +
+      '</div>' +
+      '<div class="msp-divider"></div>' +
+      '<div class="msp-section-label">Device Status</div>' +
+      '<div class="msp-status-grid">' +
+        '<div class="msp-stat-item"><div class="stat-label">Connection</div><div class="stat-val' + (fConn?' flag':'') + '">' + d.conn + '</div></div>' +
+        '<div class="msp-stat-item"><div class="stat-label">Recording</div><div class="stat-val' + (fRec?' flag':'') + '">' + d.rec + '</div></div>' +
+        '<div class="msp-stat-item"><div class="stat-label">Sync</div><div class="stat-val' + (d.sync!=='Normal'?' flag':'') + '">' + d.sync + '</div></div>' +
+        '<div class="msp-stat-item"><div class="stat-label">Risk Level</div><div class="stat-val' + (isHigh?' flag':'') + '">' + (isHigh?'High risk':'Normal') + '</div></div>' +
+      '</div>' +
+      /* Channel row — interactive chip opens the same channel picker modal */
+      '<div class="msp-channel-row">' +
+        '<span class="msp-channel-label">Channel</span>' +
+        '<button class="msp-channel-chip" id="mspChBtn" data-device="' + devId + '" data-channel="' + d.channel + '">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6c0 0 5-2 11-2s11 2 11 2"/><path d="M1 12c0 0 5-2 11-2s11 2 11 2"/><path d="M1 18c0 0 5-2 11-2s11 2 11 2"/></svg>' +
+          d.channel +
+          ' <span style="font-size:10px;font-family:\'IBM Plex Sans\',sans-serif;font-weight:400;color:var(--primary);margin-left:3px;">&#9654; Change</span>' +
+        '</button>' +
+      '</div>' +
+      '<div style="margin-top:8px"><div style="font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:700;margin-bottom:4px">Battery</div>' +
+      '<div class="msp-battery"><div class="msp-bat-bg"><div class="msp-bat-fill ' + batClass + '" style="width:' + d.bat + '%"></div></div><span class="msp-bat-pct">' + d.bat + '%</span></div></div>' +
+      '<div class="msp-divider"></div>' +
+      '<div class="msp-section-label">Live Stream Preview</div>' +
+      '<div class="msp-stream">' + (d.rec==='Filming'?'<div class="msp-stream-live"><span class="live-dot"></span>LIVE</div>':'') +
+      '<div class="msp-stream-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg></div></div>' +
+      '<div class="msp-divider"></div>' +
+      '<div class="msp-section-label">Primary Actions</div>' +
+      (isHigh ? '<button class="msp-action-btn primary-red" id="mspSwapBtn">Swap Device</button>' : '') +
+      '<button class="msp-action-btn secondary" id="mspResyncBtn">Resync Device</button>' +
+      '<button class="msp-action-btn ghost" id="mspLogsBtn">Download Logs</button>' +
+      '<div class="msp-divider"></div>' +
+      '<div class="msp-section-label">Verification</div>' +
+      '<button class="msp-verify-btn override" id="mspOvrBtn">Override Status (Force to Normal)</button>' +
+      '<button class="msp-verify-btn report" id="mspRepBtn">Report Anomaly (Normal to Abnormal)</button>' +
+      '<div class="msp-divider"></div>' +
+      '<div class="msp-section-label">Emergency Response</div>' +
+      '<div class="msp-resp-grid">' +
+        '<button class="msp-resp-btn" id="mspCallBtn">Call Officer</button>' +
+        '<button class="msp-resp-btn" id="mspChatBtn">Open Chat Window</button>' +
+        '<button class="msp-resp-btn" id="mspWarnBtn">Trigger Warning</button>' +
+        '<button class="msp-resp-btn" id="mspMemoBtn">Add Field Memo</button>' +
+        '<button class="msp-resp-btn full escalate" id="mspEscBtn">Support Escalation</button>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('mspInner').innerHTML = html;
+  document.getElementById('mapContainer').classList.add('panel-open');
+  document.getElementById('mapSidePanel').classList.add('open');
+
+  /* bind events */
+  document.getElementById('mspCloseBtn').addEventListener('click', closeSidePanel);
+  if (isHigh) document.getElementById('mspSwapBtn').addEventListener('click',   function(){ openGModal('swap');     });
+  document.getElementById('mspResyncBtn').addEventListener('click', function(){ openGModal('resync');   });
+  document.getElementById('mspLogsBtn').addEventListener('click',   function(){ openGModal('logs');     });
+  /* Channel chip in side panel — reuses the same channel picker modal */
+  document.getElementById('mspChBtn').addEventListener('click', function() {
+    openChannelModal(this);
+  });
+  document.getElementById('mspCallBtn').addEventListener('click',   function(){ openGModal('call');     });
+  document.getElementById('mspChatBtn').addEventListener('click',   function(){ openGModal('chat');     });
+  document.getElementById('mspWarnBtn').addEventListener('click',   function(){ openGModal('warn');     });
+  document.getElementById('mspMemoBtn').addEventListener('click',   function(){ openGModal('memo');     });
+  document.getElementById('mspEscBtn').addEventListener('click',    function(){ openGModal('escalate'); });
+  /* Override / Report → reuse vrModal */
+  document.getElementById('mspOvrBtn').addEventListener('click', function(){ openVrModal('override', devId); });
+  document.getElementById('mspRepBtn').addEventListener('click', function(){ openVrModal('report',   devId); });
+}
+
+function closeSidePanel() {
+  activePanel = null;
+  document.getElementById('mapContainer').classList.remove('panel-open');
+  document.getElementById('mapSidePanel').classList.remove('open');
+}
+
+})();
+</script>
+</body>
+</html>
