@@ -12,13 +12,10 @@ Unlike standard solutions that focus solely on basic uptime or post-incident deb
 
 The goal is to build a dedicated "Mission Reliability Layer for High-Risk Connected Devices."
 
-**Who uses it?** <br>
-Control center crew (dashboard) and security patrol personnel (device \+ app in the field).
+* **Control Center Crew (Dashboard)**  
+  * Opens the screen to monitor active field personnel and preemptively mitigate hardware risks before high-stakes actions begin.  
+* **In-Field Personnel (Mobile App \+ Body-Cam)**  
+  * Uses the field application to assist with daily operations, run automated pre-checks for mission-critical tasks, and guarantee reliable evidence collection.
 
-**What they're doing when they open this screen?**
-
-* Control center crew: checking the status of crews in the field, checking if there's any risk to mitigate before real actions.  
-* In-field crew: besides their actual job, using a device (e.g. body-cam) and app to assist their job, including pre-check for mission-critical actions (collecting evidence).
-
-**The Core Insight** <br>
+### The Core Insight
 The true vulnerability in high-risk missions is not device availability, but device integrity at the critical moment. This product is designed to expose operational risks before a failure occurs, safeguarding both the mission and the integrity of the evidence if a hardware anomaly arises.
