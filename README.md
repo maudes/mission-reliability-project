@@ -1,14 +1,23 @@
 # Mission Reliability Project
 
-## When "Online" Isn't Reliable
-
 ### Building the Mission Reliability Layer for High-Risk Connected Devices
 
 > Connected devices should not only appear online.  
 > They should be trustworthy when they matter most.
 
----
+### Why I'm Doing This?
 
+My work with million-scale connected devices taught me how complex IoT architectures can be. However, my EMT training and volunteer work wearing body cameras during a high-conflict mass recall movement changed how I view reliability.
+
+Facing potential violence and high-pressure emergencies made one truth clear. Equipment must be completely trustworthy. A device that shows an online status while silently failing puts field personnel at risk.
+
+I decided to redirect my connected product background toward meaningful, high-impact applications.
+The Mission Reliability Project bridges this gap by making mission-critical devices genuinely reliable at the moments that count most.
+
+---
+[![Google Slides](https://img.shields.io/badge/Google_Slides-Presentation-yellow?logo=google-slides)](https://docs.google.com/presentation/d/1OGXcHpSyM5nTwTitZ5yXQvQ0uoZkcpfTF5sR_sCxuRk/edit?usp=sharing)
+[View Google Slides Presentation](https://docs.google.com/presentation/d/1OGXcHpSyM5nTwTitZ5yXQvQ0uoZkcpfTF5sR_sCxuRk/edit?usp=sharing)
+---
 ## Product Vision
 
 ### Beyond After-Action Reviews: Predicting and Preventing Failures Before They Happen
