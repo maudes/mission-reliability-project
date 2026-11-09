@@ -458,6 +458,13 @@ body{margin:0;min-width:960px;background:var(--bg);color:var(--text);font-family
   <div class="last-action-strip"><span class="la-label">Last action</span><span class="action-pill">Manual-Action: Swap BWC-A09</span><span style="color:var(--border-strong)">&middot;</span><span class="action-status pending">● Pending</span><span class="action-ts">2026-07-05 06:22:51 UTC</span></div>
 </div>
 
+<!-- VERIFICATION STRIP -->
+<div id="vqStrip" style="display:none;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 18px;margin-bottom:14px;font-size:13px;">
+  <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);">Verification</span>
+  <span id="vqStripText"></span>
+  <a id="vqStripLink" href="verification.html" style="margin-left:auto;font-weight:600;color:var(--primary);text-decoration:none;">Open verification queue &rsaquo;</a>
+</div>
+
 <!-- CONTROLS ROW -->
 <div class="controls-row">
   <div class="view-toggle">
@@ -1016,6 +1023,200 @@ function closeSidePanel() {
   document.getElementById('mapSidePanel').classList.remove('open');
 }
 
+})();
+</script>
+<script src="mr-store.js?v=13"></script>
+<script>
+(function(){
+  if (!window.MR) return;
+  var group = ((document.querySelector('.banner-id .group-code') || {}).textContent || '').trim();
+
+  /* strip under the banner: pending count for this group */
+  var sum = MR.groupSummary(group), open = sum.pending + sum.unresolved;
+  var strip = document.getElementById('vqStrip');
+  if (strip && (open || sum.confirmed || sum.false_alarm)) {
+    strip.style.display = 'flex';
+    document.getElementById('vqStripText').innerHTML = open
+      ? '<b style="color:var(--amber)">' + open + ' alert' + (open > 1 ? 's' : '') + ' awaiting human review</b> in this group'
+      : '<b style="color:var(--green)">All alerts reviewed</b> (' + sum.confirmed + ' confirmed, ' + sum.false_alarm + ' false alarm)';
+    document.getElementById('vqStripLink').href = 'verification.html?group=' + encodeURIComponent(group) + '&from=' + encodeURIComponent(group);
+  }
+
+  /* device menu: primary entry to the verification record, existing actions stay as quick actions */
+  var dm = document.getElementById('floatingDropdown');
+  var lastDevice = null, lastRow = null;
+  var badge;
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.menu-btn');
+    if (!btn) return;
+    var row = btn.closest('.dt-row');
+    lastRow = row;
+    lastDevice = row ? ((row.querySelector('.device-id-cell') || {}).textContent || '').trim() : null;
+    if (badge && lastDevice) {
+      var all = MR.events().filter(function(x){ return !x.history && x.device === lastDevice; });
+      var n = all.filter(function(x){ return MR.isOpen(x); }).length;
+      badge.textContent = n ? n + ' open' : all.length ? 'Reviewed' : 'No alerts';
+      badge.style.background = n ? 'var(--amber-tint)' : 'var(--grey-tint)';
+      badge.style.color = n ? 'var(--amber)' : 'var(--text-muted)';
+    }
+  }, true);
+  if (dm) {
+    var item = document.createElement('div');
+    item.className = 'dm-item';
+    item.style.cssText = 'font-weight:600;color:var(--primary);';
+    item.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary)"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span style="flex:1">Open verification record</span><span id="vqMenuBadge" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:100px;"></span>';
+    var label = dm.querySelector('.dm-section-label');
+    var quick = document.createElement('div');
+    quick.className = 'dm-section-label';
+    quick.textContent = 'Quick actions';
+    if (label && label.nextSibling) {
+      label.parentNode.insertBefore(item, label.nextSibling);
+      item.parentNode.insertBefore(quick, item.nextSibling);
+    }
+    item.setAttribute('data-vq-open', '1');
+    badge = item.querySelector('#vqMenuBadge');
+    item.addEventListener('click', function(){
+      var q = 'from=' + encodeURIComponent(group);
+      if (lastDevice) {
+        q += '&device=' + encodeURIComponent(lastDevice);
+        var row = lastRow;
+        if (row) {
+          var cells = row.querySelectorAll('.dt-cell');
+          var ch = row.querySelector('.ch-chip'), bat = row.querySelector('.bat-val');
+          if (cells[1]) q += '&name=' + encodeURIComponent(cells[1].textContent.trim());
+          if (cells[2]) q += '&area=' + encodeURIComponent(cells[2].textContent.trim());
+          if (ch) q += '&ch=' + encodeURIComponent(ch.getAttribute('data-channel'));
+          if (bat) q += '&bat=' + parseInt(bat.textContent, 10);
+        }
+      }
+      location.href = 'verification.html?' + q;
+    });
+  }
+
+
+  /* banner count follows verification outcomes */
+  var numEl = document.querySelector('.abnormal-stat .num');
+  if (numEl) {
+    var baseN = parseInt(numEl.textContent, 10);
+    var adjN = MR.adjustedAbnormal(group, baseN);
+    if (adjN !== baseN) { numEl.textContent = adjN + ' abnormal'; numEl.title = 'Was ' + baseN + ' before verification'; }
+  }
+
+  /* signal history for every device, normal or not */
+  var gm = document.getElementById('gModal');
+  function openSignalModal(dev){
+    if (!gm || !dev) return;
+    document.getElementById('gModalTitle').textContent = 'Signal history — ' + dev;
+    var box = document.getElementById('gModalContent');
+    box.innerHTML = '<p class="gmodal-desc">Last 45 minutes, one cell per minute.</p>' + MR.signalHTML(dev);
+    MR.bindSignal(box);
+    gm.classList.add('open');
+  }
+  if (dm) {
+    var sigItem = document.createElement('div');
+    sigItem.className = 'dm-item';
+    sigItem.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>View signal history';
+    var openItem = dm.querySelector('[data-vq-open]');
+    if (openItem && openItem.parentNode) openItem.parentNode.insertBefore(sigItem, openItem.nextSibling);
+    sigItem.addEventListener('click', function(){ dm.classList.remove('open'); openSignalModal(lastDevice); });
+  }
+
+  /* map side panel: signal history + link to the verification record */
+  var panel = document.getElementById('mspInner');
+  function titleCase(t){ return t.toLowerCase().replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }
+  function labelNode(text){
+    return Array.prototype.filter.call(panel.querySelectorAll('.msp-section-label'), function(n){ return n.textContent.trim() === text; })[0];
+  }
+  function augmentPanel(){
+    var chBtn = document.getElementById('mspChBtn');
+    if (!chBtn || panel.querySelector('#mrPanelExtra')) return;
+    var dev = chBtn.getAttribute('data-device');
+    var nameEl = panel.querySelector('.msp-officer-name');
+    var areaEl = Array.prototype.filter.call(panel.querySelectorAll('.msp-device-meta span'), function(n){ return n.textContent.indexOf('Area') === 0; })[0];
+    var q = 'from=' + encodeURIComponent(group) + '&device=' + encodeURIComponent(dev);
+    if (nameEl) q += '&name=' + encodeURIComponent(titleCase(nameEl.textContent.trim()));
+    if (areaEl) q += '&area=' + encodeURIComponent(areaEl.textContent.replace('Area', '').trim());
+    var chip = chBtn.getAttribute('data-channel'); if (chip) q += '&ch=' + encodeURIComponent(chip);
+    var all = MR.events().filter(function(x){ return !x.history && x.device === dev; });
+    var n = all.filter(function(x){ return MR.isOpen(x); }).length;
+    var wrap = document.createElement('div');
+    wrap.id = 'mrPanelExtra';
+    wrap.innerHTML = '<div class="msp-section-label">Signal history</div>' + MR.signalHTML(dev) + '<div class="msp-divider"></div>';
+    var pa = labelNode('Primary Actions');
+    if (pa) pa.parentNode.insertBefore(wrap, pa);
+    MR.bindSignal(wrap);
+    var vl = labelNode('Verification');
+    if (vl) {
+      var a = document.createElement('a');
+      a.href = 'verification.html?' + q;
+      a.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;border-radius:8px;background:#005FBE;color:#fff;font-size:12.5px;font-weight:600;text-decoration:none;';
+      a.innerHTML = '<span>Open verification record</span><span style="font-size:10px;padding:2px 8px;border-radius:100px;background:#fff;color:#005FBE;">' + (n ? n + ' open' : all.length ? 'Reviewed' : 'No alerts') + '</span>';
+      vl.parentNode.insertBefore(a, vl.nextSibling);
+    }
+  }
+  if (panel) new MutationObserver(function(){ augmentPanel(); }).observe(panel, {childList: true});
+
+  /* Override / Report modal: same rules and vocabulary as the verification page */
+  var modal = document.getElementById('vrModal');
+  var txt = document.getElementById('vrModalTxt');
+  var submit = document.getElementById('vrModalSubmit');
+  function modalDevice(){
+    var m = ((document.getElementById('vrModalDesc') || {}).textContent || '').match(/\((BWC-[A-Z0-9]+)\)/);
+    return m ? m[1] : null;
+  }
+  function ensureHint(){
+    var hint = document.getElementById('vqHint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'vqHint';
+      hint.style.cssText = 'font-size:11.5px;color:var(--text-muted);margin-top:8px;line-height:1.55;';
+      txt.parentNode.insertBefore(hint, txt.nextSibling);
+    }
+    var dev = modalDevice();
+    var isOvr = ((document.getElementById('vrModalTitle') || {}).textContent || '').indexOf('Override') === 0;
+    hint.style.color = 'var(--text-muted)';
+    hint.innerHTML = 'Required, at least 10 characters. ' + (isOvr
+        ? 'Recorded as <b>False alarm</b> in the verification log.'
+        : 'Filed as a <b>manual report</b> in the verification queue.') +
+      (dev ? ' <a href="verification.html?from=' + encodeURIComponent(group) + '&device=' + dev + '" style="color:var(--primary);font-weight:600;text-decoration:none;">Open full record for ' + dev + ' &rsaquo;</a>' : '');
+  }
+  if (modal && txt && submit) {
+    new MutationObserver(function(){ if (modal.classList.contains('open')) ensureHint(); })
+      .observe(modal, {attributes: true, attributeFilter: ['class']});
+
+    /* capture: block the page's own handler when the note is too short */
+    submit.addEventListener('click', function(e){
+      if (txt.value.trim().length < 10) {
+        e.stopImmediatePropagation();
+        txt.style.borderColor = 'var(--alert)';
+        var h = document.getElementById('vqHint'); if (h) h.style.color = 'var(--alert-dark)';
+        txt.focus();
+      }
+    }, true);
+
+    /* bubble: runs after the page's handler, mirrors a valid submit into the shared store */
+    submit.addEventListener('click', function(){
+      var note = txt.value.trim();
+      var dev = modalDevice();
+      var title = (document.getElementById('vrModalTitle') || {}).textContent || '';
+      if (note.length < 10 || !dev) return;
+      var msg;
+      if (title.indexOf('Report') === 0) {
+        var nm = ((document.getElementById('vrModalDesc') || {}).textContent || '').match(/for (.+?) \(BWC-/);
+        var r = MR.addManualReport({device: dev, note: note, officer: nm ? nm[1] : null});
+        msg = 'Queued for review as ' + r.id;
+      } else {
+        var ev = MR.events().filter(function(x){ return !x.history && x.device === dev && MR.isOpen(x); })[0];
+        if (!ev) return;
+        MR.decide(ev.id, {status: 'false_alarm', category: 'Manual override from group view', note: note, reviewSec: null});
+        msg = ev.id + ' closed as False alarm';
+      }
+      var t = document.createElement('div');
+      t.innerHTML = msg + ' &middot; <a href="verification.html?from=' + encodeURIComponent(group) + '&device=' + dev + '" style="color:#9CC8FF">open record</a>';
+      t.style.cssText = 'position:fixed;bottom:72px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:12.5px;font-weight:600;padding:9px 18px;border-radius:8px;z-index:9999;';
+      document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 5000);
+    });
+  }
 })();
 </script>
 </body>

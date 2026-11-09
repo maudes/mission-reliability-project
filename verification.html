@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mission Reliability — Verification Queue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F7FA; --text:#111827; --text-muted:#5B6472; --text-faint:#8A93A1;
+    --primary:#005FBE; --primary-dark:#00468D; --primary-tint:#EAF2FC;
+    --alert:#FF3838; --alert-dark:#D62828; --alert-tint:#FFF0F0;
+    --amber:#C97A12; --amber-tint:#FFF6E8; --amber-border:#F0B854;
+    --green:#1A9E5C; --green-tint:#E9F8F0;
+    --grey-tint:#F0F2F5; --surface:#FFFFFF; --border:#E2E6EC; --border-strong:#D2D8E0;
+    --radius:12px;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-width:1080px; background:var(--bg); color:var(--text); font-family:'IBM Plex Sans',sans-serif; -webkit-font-smoothing:antialiased; }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+  button{ font-family:inherit; }
+  .page{ max-width:1320px; margin:0 auto; padding:28px 32px 90px; }
+
+  .back-link{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--primary); text-decoration:none; margin-bottom:14px; }
+  .back-link svg{ width:14px; height:14px; }
+  .back-link:hover{ color:var(--primary-dark); }
+
+  .page-header{ display:flex; align-items:flex-end; justify-content:space-between; padding-bottom:18px; margin-bottom:20px; border-bottom:1px solid var(--border-strong); }
+  .page-header h1{ font-size:20px; margin:0; font-weight:700; letter-spacing:-.01em; }
+  .page-header .subtitle{ font-size:13px; color:var(--text-muted); margin-top:4px; }
+  .hdr-right{ display:flex; align-items:center; gap:22px; }
+  .reviewer{ font-size:12px; color:var(--text-muted); text-align:right; line-height:1.5; }
+  .reviewer b{ color:var(--text); font-weight:600; }
+
+  /* KPI strip */
+  .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px; }
+  .kpi{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px 13px; position:relative; overflow:hidden; }
+  .kpi::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--green); }
+  .kpi[data-tone=amber]::before{ background:var(--amber); }
+  .kpi[data-tone=red]::before{ background:var(--alert); }
+  .kpi[data-tone=blue]::before{ background:var(--primary); }
+  .kpi-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); }
+  .kpi-val{ font-size:26px; font-weight:700; margin:4px 0 2px; letter-spacing:-.02em; }
+  .kpi[data-tone=amber] .kpi-val{ color:var(--amber); }
+  .kpi[data-tone=red] .kpi-val{ color:var(--alert-dark); }
+  .kpi-sub{ font-size:11.5px; color:var(--text-muted); }
+
+  .phase-row{ display:flex; align-items:center; gap:10px; margin-bottom:16px; font-size:12px; color:var(--text-muted); }
+  .phase-pill{ display:inline-flex; align-items:center; gap:7px; font-weight:700; font-size:12px; padding:5px 12px; border-radius:100px; }
+  .phase-pill[data-tone=green]{ background:var(--green-tint); color:var(--green); }
+  .phase-pill[data-tone=amber]{ background:var(--amber-tint); color:var(--amber); }
+  .phase-pill[data-tone=red]{ background:var(--alert-tint); color:var(--alert-dark); }
+  .phase-pill i{ width:7px; height:7px; border-radius:50%; background:currentColor; display:inline-block; }
+
+  .fatigue{ display:none; background:var(--amber-tint); border:1px solid var(--amber-border); border-radius:var(--radius); padding:12px 16px; margin-bottom:16px; font-size:13px; line-height:1.55; }
+  .fatigue.show{ display:flex; gap:14px; align-items:flex-start; }
+  .fatigue b{ color:var(--amber); }
+  .fatigue button{ margin-left:auto; flex-shrink:0; font-size:12px; font-weight:600; background:transparent; border:1px solid var(--amber-border); color:var(--amber); border-radius:7px; padding:6px 12px; cursor:pointer; }
+
+  /* tabs */
+  .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--border-strong); margin-bottom:16px; }
+  .tab{ background:none; border:none; padding:10px 16px; font-size:13px; font-weight:600; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+  .tab.active{ color:var(--primary); border-bottom-color:var(--primary); }
+  .tab .cnt{ font-size:11px; background:var(--grey-tint); color:var(--text-muted); padding:1px 7px; border-radius:100px; margin-left:6px; }
+  .tab.active .cnt{ background:var(--primary-tint); color:var(--primary); }
+  .pane{ display:none; } .pane.active{ display:block; }
+
+  /* queue layout */
+  .qlayout{ display:grid; grid-template-columns:400px 1fr; gap:16px; align-items:start; }
+  .qlist-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:sticky; top:12px; }
+  .qfilters{ padding:12px 12px 10px; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip{ font-size:12px; font-weight:600; padding:5px 11px; border-radius:100px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text-muted); cursor:pointer; }
+  .chip.active{ background:var(--text); border-color:var(--text); color:#fff; }
+  .chip .n{ opacity:.65; margin-left:4px; font-weight:500; }
+  select.sel{ font-family:inherit; font-size:12px; padding:5px 8px; border:1px solid var(--border-strong); border-radius:7px; background:var(--surface); color:var(--text); margin-left:auto; }
+  .qlist{ max-height:calc(100vh - 330px); min-height:200px; overflow-y:auto; }
+  .qitem{ display:grid; grid-template-columns:12px 1fr auto; gap:11px; padding:13px 14px; border-bottom:1px solid var(--border); cursor:pointer; align-items:start; }
+  .qitem:hover{ background:#FAFBFC; }
+  .qitem.sel{ background:var(--primary-tint); box-shadow:inset 3px 0 0 var(--primary); }
+  .qdot{ width:10px; height:10px; border-radius:50%; margin-top:5px; background:var(--alert); }
+  .qdot[data-s=unresolved]{ background:var(--amber); }
+  .qdot[data-s=confirmed]{ background:var(--alert-dark); opacity:.45; }
+  .qdot[data-s=false_alarm]{ background:var(--green); opacity:.6; }
+  .qitem .dev{ font-size:13px; font-weight:600; }
+  .qitem .kind{ font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .qitem .meta{ font-size:11px; color:var(--text-faint); margin-top:4px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .qitem .right{ text-align:right; font-size:11px; color:var(--text-faint); white-space:nowrap; }
+  .tag{ display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:100px; letter-spacing:.02em; }
+  .tag.manual{ background:#F3EEFF; color:#6B3FD1; }
+  .tag.auto{ background:var(--grey-tint); color:var(--text-muted); }
+  .tag.due{ background:var(--amber-tint); color:var(--amber); }
+  .tag.wait{ background:var(--grey-tint); color:var(--text-muted); }
+  .tag.reopen{ background:var(--alert-tint); color:var(--alert-dark); }
+  .res-pill{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:100px; }
+  .res-pill.confirmed{ background:var(--alert-tint); color:var(--alert-dark); }
+  .res-pill.false_alarm{ background:var(--green-tint); color:var(--green); }
+  .res-pill.unresolved{ background:var(--amber-tint); color:var(--amber); }
+  .confbar{ width:44px; height:4px; background:var(--grey-tint); border-radius:2px; display:inline-block; vertical-align:middle; overflow:hidden; }
+  .confbar i{ display:block; height:100%; background:var(--primary); }
+  .empty{ padding:40px 20px; text-align:center; font-size:13px; color:var(--text-muted); line-height:1.6; }
+
+  /* detail */
+  .detail{ display:flex; flex-direction:column; gap:14px; }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; }
+  .card h3{ margin:0 0 12px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint); }
+  .d-head{ display:flex; justify-content:space-between; gap:20px; align-items:flex-start; }
+  .d-head .t1{ font-size:18px; font-weight:700; }
+  .d-head .t2{ font-size:13px; color:var(--text-muted); margin-top:3px; }
+  .d-head .sum{ font-size:14px; line-height:1.55; margin-top:12px; max-width:720px; }
+  .d-head .sidemeta{ text-align:right; font-size:12px; color:var(--text-muted); line-height:1.8; white-space:nowrap; }
+  .d-head .sidemeta b{ color:var(--text); }
+  .snap{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+  .snap > div{ background:var(--grey-tint); border-radius:8px; padding:9px 12px; }
+  .snap .l{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); }
+  .snap .v{ font-size:13px; line-height:1.35; font-weight:600; margin-top:2px; }
+
+  .track{ display:grid; grid-template-columns:130px 1fr; align-items:center; gap:12px; margin-bottom:8px; font-size:12px; color:var(--text-muted); }
+  .cells{ display:grid; grid-template-columns:repeat(45,1fr); gap:2px; }
+  .cells i{ height:18px; border-radius:2px; background:#CFEBDC; }
+  .cells i.bad{ background:var(--alert); }
+  .axis{ display:grid; grid-template-columns:130px 1fr; gap:12px; font-size:10.5px; color:var(--text-faint); }
+  .axis div{ display:flex; justify-content:space-between; }
+
+  .hints{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+  .hints li{ display:flex; gap:10px; font-size:13px; line-height:1.5; align-items:flex-start; }
+  .hints .w{ flex-shrink:0; font-size:10px; font-weight:700; padding:2px 8px; border-radius:100px; margin-top:2px; min-width:70px; text-align:center; }
+  .hints .w.for{ background:var(--alert-tint); color:var(--alert-dark); }
+  .hints .w.against{ background:var(--green-tint); color:var(--green); }
+
+  .memos{ display:flex; flex-direction:column; gap:10px; }
+  .memo{ font-size:13px; line-height:1.5; padding-left:12px; border-left:2px solid var(--border-strong); }
+  .memo .mh{ font-size:11px; color:var(--text-faint); }
+  .row-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .btn{ font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); color:var(--text); cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn:hover{ background:var(--grey-tint); }
+  .btn.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover{ background:var(--primary-dark); }
+  .btn.primary[disabled]{ background:#B9C3D1; border-color:#B9C3D1; cursor:not-allowed; }
+  .btn.ghost{ border-color:transparent; color:var(--primary); padding-left:0; }
+
+  /* decision */
+  .choices{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .choice{ border:1.5px solid var(--border-strong); border-radius:10px; padding:12px 14px; cursor:pointer; background:var(--surface); text-align:left; }
+  .choice:hover{ border-color:#B2BBC9; }
+  .choice .ct{ font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
+  .choice .ct i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .choice .cd{ font-size:12px; color:var(--text-muted); margin-top:5px; line-height:1.45; }
+  .choice[data-c=confirmed] .ct i{ background:var(--alert); }
+  .choice[data-c=unresolved] .ct i{ background:var(--amber); }
+  .choice[data-c=false_alarm] .ct i{ background:var(--green); }
+  .choice.on[data-c=confirmed]{ border-color:var(--alert); background:var(--alert-tint); }
+  .choice.on[data-c=unresolved]{ border-color:var(--amber); background:var(--amber-tint); }
+  .choice.on[data-c=false_alarm]{ border-color:var(--green); background:var(--green-tint); }
+  .form-row{ margin-top:14px; }
+  .form-row label.fl{ display:block; font-size:12px; font-weight:600; margin-bottom:6px; }
+  .form-row select, .form-row textarea{ width:100%; font-family:inherit; font-size:13px; padding:9px 11px; border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); color:var(--text); }
+  .form-row textarea{ min-height:70px; resize:vertical; }
+  .seg{ display:flex; gap:6px; }
+  .seg button{ flex:1; padding:8px 0; border-radius:8px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; font-weight:600; cursor:pointer; color:var(--text-muted); }
+  .seg button.on{ background:var(--amber); border-color:var(--amber); color:#fff; }
+  .check{ display:flex; gap:9px; align-items:flex-start; font-size:12.5px; line-height:1.5; background:var(--amber-tint); border:1px solid var(--amber-border); padding:10px 12px; border-radius:8px; }
+  .check input{ margin-top:3px; }
+  .needs{ font-size:12px; color:var(--text-muted); margin-top:14px; }
+  .needs b{ color:var(--alert-dark); font-weight:600; }
+  .submit-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:14px; }
+  .rule-note{ font-size:11.5px; color:var(--text-faint); }
+  .result{ display:flex; gap:16px; align-items:flex-start; }
+  .result .big{ font-size:15px; font-weight:700; }
+  .result .small{ font-size:13px; color:var(--text-muted); margin-top:4px; line-height:1.55; }
+
+  /* metrics */
+  .charts{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .chart-title{ font-size:14px; font-weight:700; margin-bottom:2px; }
+  .chart-sub{ font-size:12px; color:var(--text-muted); margin-bottom:10px; line-height:1.5; }
+  .chart-cap{ font-size:11.5px; color:var(--text-muted); margin-top:8px; display:flex; gap:16px; }
+  .chart-cap span::before{ content:''; display:inline-block; width:14px; height:0; border-top:2px dashed; margin-right:6px; vertical-align:middle; }
+  .chart-cap .base::before{ border-color:#8A93A1; }
+  .chart-cap .red::before{ border-color:var(--alert); }
+  .rules{ margin:0; padding-left:18px; font-size:13px; line-height:1.8; }
+  .defs{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .defs td{ padding:8px 10px; border-top:1px solid var(--border); vertical-align:top; line-height:1.5; }
+  .defs td:first-child{ font-weight:600; width:210px; }
+
+  /* log */
+  .audit{ list-style:none; margin:0; padding:0; }
+  .audit li{ display:grid; grid-template-columns:150px 170px 1fr auto; gap:14px; padding:12px 4px; border-top:1px solid var(--border); font-size:12.5px; align-items:start; }
+  .audit li:first-child{ border-top:none; }
+  .audit .ts{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-faint); }
+  .audit .just{ display:block; color:var(--text-muted); margin-top:4px; font-size:12px; }
+
+  /* demo bar + toast */
+  .demobar{ position:fixed; left:0; right:0; bottom:0; background:#111827; color:#C9D1DD; padding:10px 32px; display:flex; align-items:center; gap:12px; font-size:12px; z-index:50; }
+  .demobar b{ color:#fff; }
+  .demobar button{ font-size:12px; font-weight:600; background:#1F2937; border:1px solid #374151; color:#fff; border-radius:7px; padding:6px 12px; cursor:pointer; }
+  .demobar button:hover{ background:#374151; }
+  .demobar .sp{ flex:1; }
+  .toast{ position:fixed; bottom:62px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; font-size:12.5px; font-weight:600; padding:9px 18px; border-radius:8px; z-index:99; opacity:0; transition:opacity .25s; pointer-events:none; }
+  .toast.show{ opacity:1; }
+
+  /* status bar (replaces KPI tiles at top) */
+  .statusbar{ display:flex; align-items:center; gap:18px; margin-bottom:14px; font-size:13px; flex-wrap:wrap; }
+  .statusbar button.phase-pill{ border:none; cursor:pointer; font-family:inherit; }
+  .sb-stat b{ font-size:15px; }
+  .sb-muted{ color:var(--text-faint); font-size:12px; }
+  .collapse-btn{ width:28px; height:28px; border-radius:7px; border:1px solid var(--border-strong); background:var(--surface); cursor:pointer; font-size:15px; line-height:1; color:var(--text-muted); flex-shrink:0; }
+  .collapse-btn:hover{ background:var(--grey-tint); }
+  .qlayout{ grid-template-columns:340px 1fr; }
+  .qlayout.collapsed{ grid-template-columns:56px 1fr; }
+  .qlayout.collapsed .qfilters{ flex-direction:column; padding:10px 0; align-items:center; border-bottom:1px solid var(--border); }
+  .qmini{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; font-size:9.5px; color:var(--text-faint); font-weight:600; }
+  .qmini:hover{ background:#FAFBFC; }
+  .qmini.sel{ background:var(--primary-tint); box-shadow:inset 3px 0 0 var(--primary); }
+  .dnav{ display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:10px; }
+  .dnav .btn{ padding:5px 11px; font-size:12px; margin-left:6px; }
+  .dgrid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:14px; align-items:start; }
+  .dmain{ display:flex; flex-direction:column; gap:14px; min-width:0; }
+  .dside{ position:sticky; top:12px; max-height:calc(100vh - 80px); overflow-y:auto; }
+  .dside .choices{ grid-template-columns:1fr; gap:8px; }
+  .dside .choice{ padding:10px 12px; }
+  .dside .choice .cd{ margin-top:3px; }
+  .dside .card{ border-color:var(--border-strong); box-shadow:0 2px 10px rgba(17,24,39,.07); padding:16px; }
+  .d-head{ flex-direction:column; gap:0; }
+  .metaline{ display:flex; flex-wrap:wrap; gap:6px 14px; font-size:12px; color:var(--text-muted); margin-top:8px; align-items:center; }
+  .metaline b{ color:var(--text); font-weight:600; }
+  .snap > div.alert{ background:var(--alert-tint); box-shadow:inset 0 0 0 1px rgba(255,56,56,.4); }
+  .snap > div.alert .v{ color:var(--alert-dark); }
+  .snap > div.warn{ background:var(--amber-tint); box-shadow:inset 0 0 0 1px var(--amber-border); }
+  .snap > div.warn .v{ color:var(--amber); }
+  .snap .flag{ font-size:10px; font-weight:700; margin-left:6px; text-transform:uppercase; letter-spacing:.04em; }
+  .track{ grid-template-columns:110px 1fr; } .axis{ grid-template-columns:110px 1fr; }
+  .rec-line{ font-size:12.5px; padding:7px 0; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; }
+  .rec-line:first-of-type{ border-top:none; }
+  @media (max-width:1280px){ .dgrid{ grid-template-columns:1fr; } .dside{ position:static; max-height:none; order:-1; } .dgrid .dside{ grid-row:1; } }
+
+  .track{ grid-template-columns:110px 1fr 84px; }
+  .axis{ grid-template-columns:110px 1fr 84px; }
+  .track > span:first-child small{ display:block; font-size:10.5px; color:var(--text-faint); margin-top:1px; }
+  .track .now{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-align:right; color:var(--text); }
+  .track .now.bad{ color:var(--alert-dark); font-weight:600; }
+  .track .now.nodata{ color:var(--text-faint); }
+  .cells i.nodata{ background:repeating-linear-gradient(45deg,#DDE1E8,#DDE1E8 2px,#F1F3F6 2px,#F1F3F6 5px); }
+  .cells i{ cursor:crosshair; }
+  .cells i:hover{ outline:2px solid var(--text); outline-offset:1px; }
+  .sig-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--text-muted); min-height:20px; }
+  .sig-legend{ display:flex; gap:14px; font-size:11px; color:var(--text-faint); }
+  .sig-legend i{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+  .devchip{ display:flex; align-items:center; justify-content:space-between; background:var(--primary-tint); border:1px solid #BCD6F3; color:var(--primary-dark); border-radius:10px; padding:9px 14px; font-size:12.5px; margin-bottom:10px; }
+  .devchip button{ border:none; background:none; color:var(--primary-dark); font-weight:600; cursor:pointer; font-size:12.5px; }
+.crumbs{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px; color:var(--text-faint); }
+  .crumbs a{ color:var(--primary); font-weight:600; text-decoration:none; }
+  .crumbs a:hover{ color:var(--primary-dark); text-decoration:underline; }
+  .crumbs span.cur{ color:var(--text-muted); font-weight:600; }
+
+  .qpin{ display:grid; grid-template-columns:12px 1fr auto; gap:11px; padding:12px 14px; border-bottom:2px solid #BCD6F3; background:#F4F9FF; cursor:pointer; align-items:start; }
+  .qpin.sel{ background:var(--primary-tint); box-shadow:inset 3px 0 0 var(--primary); }
+  .qpin .pdot{ width:10px; height:10px; border-radius:50%; margin-top:5px; background:var(--green); }
+  .qpin .dev{ font-size:13px; font-weight:600; } .qpin .kind{ font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .qpin button{ border:none; background:none; color:var(--text-faint); cursor:pointer; font-size:14px; padding:0 2px; }
+  .qpin button:hover{ color:var(--text); }
+
+  .fu{ margin-top:14px; padding:12px 14px; border-radius:10px; border:1px solid var(--border-strong); background:var(--grey-tint); font-size:13px; line-height:1.5; }
+  .fu .fh{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); margin-bottom:4px; }
+  .fu.pending{ background:var(--amber-tint); border-color:var(--amber-border); }
+  .fu.success{ background:var(--green-tint); border-color:#BFE6D1; }
+  .fu.failed{ background:var(--alert-tint); border-color:#FFC4C4; }
+  .fu .st{ font-weight:700; }
+  .fu.pending .st{ color:var(--amber); } .fu.success .st{ color:var(--green); } .fu.failed .st{ color:var(--alert-dark); }
+  .fu .btns{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .logbar{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .logbar input[type=search], .logbar select{ font-family:inherit; font-size:12.5px; padding:7px 10px; border:1px solid var(--border-strong); border-radius:8px; background:var(--surface); color:var(--text); }
+  .logbar input[type=search]{ width:260px; }
+  .logbar .sp{ flex:1; }
+  .logmeta{ font-size:12px; color:var(--text-faint); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <nav class="crumbs" id="crumbs"></nav>
+
+  <div class="page-header">
+    <div>
+      <h1>Verification Queue</h1>
+      <div class="subtitle">Screen 3 · classify every detection as Confirmed, Unresolved or False alarm. Accuracy comes before speed.</div>
+    </div>
+    <div class="hdr-right">
+      <div class="reviewer"><b>Sammy Leung (CC)</b><br>Reviewer · Command Center</div>
+      <div class="reviewer" style="text-align:right"><span class="mono" id="simClock">—</span><br>simulated mission time</div>
+    </div>
+  </div>
+
+  <div class="statusbar" id="statusbar"></div>
+  <div class="fatigue" id="fatigue"></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="queue">Review queue <span class="cnt" id="cntQueue">0</span></button>
+    <button class="tab" data-tab="metrics">Reliability metrics</button>
+    <button class="tab" data-tab="log">Decision log <span class="cnt" id="cntLog">0</span></button>
+  </div>
+
+  <!-- QUEUE -->
+  <div class="pane active" id="pane-queue">
+    <div class="qlayout" id="qlayout">
+      <div class="qlist-wrap">
+        <div class="qfilters" id="qfilters"></div>
+        <div class="qlist" id="qlist"></div>
+      </div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="pane" id="pane-metrics">
+    <div class="kpis" id="kpis"></div>
+    <div class="phase-row" id="phaseRow"></div>
+    <div class="charts" id="charts"></div>
+    <div class="card" style="margin-top:14px">
+      <h3>How these two axes fail differently</h3>
+      <table class="defs">
+        <tr><td>Speed degradation</td><td>Gradual and recoverable. Median detection time can slip from 4 min to about 8 min with no revenue impact; the loss starts (−27%) only when it passes the +30% red line (5.2 min) and Phase 1 triggers.</td></tr>
+        <tr><td>Accuracy degradation</td><td>A cliff. Auto-detection falling from 90% to 85% doubles the manual-catch share (10% → 15%), which triggers Phase 2 and a −67% revenue hit. Frequent silent failures that humans have to catch deny the product's core value.</td></tr>
+        <tr><td>Auto-detection rate</td><td>Share of confirmed failures that the system found itself. Rolling 4 h. Target ≥ 90%, red line &lt; 85%.</td></tr>
+        <tr><td>Manual-catch fraction</td><td>Share of confirmed failures first caught by a human report. Baseline 10%, red line 15%. This is the failure-monitoring metric for this screen.</td></tr>
+        <tr><td>Why a rising manual-catch can mean reviewer fatigue</td><td>If reviewers clear ambiguous alerts as “False alarm” to empty the queue, real failures stay live until a person in the field notices. Those show up here as manual catches.</td></tr>
+      </table>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Design rules enforced on this screen</h3>
+      <ol class="rules">
+        <li>Three explicit outcomes only. There is no one-click pass, and every outcome needs a written note.</li>
+        <li>Full evidence is always on screen: 45-min signal tracks, system reasoning for and against, and the complete memo history.</li>
+        <li>Unresolved is not a way to close. It needs a re-check time and returns to the queue when it is due.</li>
+        <li>Clearing a high-confidence (≥ 80%) detection as False alarm needs a second-source check with the officer or the footage.</li>
+        <li>A fatigue guard warns when several fast False alarms are recorded in a row.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="pane" id="pane-log">
+    <div class="card"><h3>Decisions and reports this session</h3><div id="logBody"></div></div>
+  </div>
+</div>
+
+<div class="demobar">
+  <b>Demo data</b>
+  <button id="dAlert">+ New alert</button>
+  <button id="dBurst">+ Burst of 6 alerts</button>
+  <span class="sp"></span>
+  <span>Test data only · stored in this browser</span>
+  <button id="dReset">Reset test data</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="mr-store.js?v=13"></script>
+<script>
+(function(){
+'use strict';
+
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function pct(x){ return x == null ? '—' : (x * 100).toFixed(1) + '%'; }
+function ago(ms){
+  var m = Math.max(0, Math.round((MR.now() - ms) / MR.MIN));
+  return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm ago';
+}
+function inMin(ms){
+  var m = Math.ceil((ms - MR.now()) / MR.MIN);
+  return m <= 0 ? 'due now' : 'in ' + m + 'm';
+}
+
+var params = new URLSearchParams(location.search);
+var state = {
+  tab: 'queue',
+  filter: 'open',
+  group: params.get('group') || 'all',
+  selected: null,
+  deviceView: null,
+  showDevice: false,
+  collapsed: (function(){ try { return !!localStorage.getItem('mr_vq_collapsed'); } catch(e){ return false; } })(),
+  form: null,
+  openedAt: 0
+};
+var GROUPS = ['GROUP A', 'GROUP B', 'GROUP C', 'GROUP D', 'GROUP E'];
+
+/* ---------- helpers ---------- */
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove('show'); }, 2600);
+}
+
+function liveEvents(){ return MR.events().filter(function(e){ return !e.history; }); }
+
+function matchesFilter(e){
+  if (state.group !== 'all' && e.group !== state.group) return false;
+  var f = state.filter;
+  if (f === 'all') return true;
+  if (f === 'open') return MR.isOpen(e);
+  if (f === 'pending') return e.status === 'pending' || MR.isRecheckDue(e);
+  if (f === 'unresolved') return e.status === 'unresolved';
+  if (f === 'resolved') return e.status === 'confirmed' || e.status === 'false_alarm';
+  return true;
+}
+
+function queueRank(e){
+  if (e.status === 'pending' || MR.isRecheckDue(e)) return 0;
+  if (e.status === 'unresolved') return 1;
+  return 2;
+}
+function filtered(){
+  return liveEvents().filter(matchesFilter).sort(function(a, b){
+    var r = queueRank(a) - queueRank(b);
+    return r !== 0 ? r : a.detectedAt - b.detectedAt;
+  });
+}
+
+function select(id){
+  state.showDevice = false;
+  state.selected = id;
+  state.form = {choice: null, action: '', category: '', nextCheck: 10, note: '', verified: false};
+  state.openedAt = Date.now();
+}
+
+/* ---------- KPIs ---------- */
+function renderKpis(){
+  var m = MR.metrics(240);
+  var ph = MR.phase(m);
+  var auto = m.autoRate, man = m.manualFrac;
+  var toneAuto = auto == null ? 'green' : auto < 0.85 ? 'red' : auto < 0.9 ? 'amber' : 'green';
+  var toneMan = man == null ? 'green' : man > 0.15 ? 'red' : man > 0.12 ? 'amber' : 'green';
+  var toneDet = m.medianDetect == null ? 'green' : m.medianDetect > 5.2 ? 'amber' : 'green';
+  var open = liveEvents().filter(function(e){ return MR.isOpen(e); });
+  var oldest = open.length ? Math.max.apply(null, open.map(function(e){ return MR.now() - e.detectedAt; })) : 0;
+  var pend = MR.pendingCount();
+  var waiting = open.filter(function(e){ return e.status === 'unresolved' && !MR.isRecheckDue(e); }).length;
+  $('statusbar').innerHTML =
+    '<button class="phase-pill" data-tone="' + ph.tone + '" id="healthBtn" title="Open reliability metrics"><i></i>' + esc(ph.label) + '</button>' +
+    '<span class="sb-stat"><b>' + pend + '</b> need a decision</span>' +
+    '<span class="sb-stat"><b>' + waiting + '</b> waiting for re-check</span>' +
+    (open.length ? '<span class="sb-muted">oldest open ' + Math.round(oldest / MR.MIN) + ' min</span>' : '<span class="sb-muted">queue is clear</span>');
+  $('kpis').innerHTML =
+    kpi('Auto-detection rate', pct(auto), 'target ≥ 90% · red line < 85%', toneAuto) +
+    kpi('Manual-catch fraction', pct(man), 'baseline 10% · red line > 15%', toneMan) +
+    kpi('Median detection time', m.medianDetect == null ? '—' : m.medianDetect.toFixed(1) + ' min', 'baseline 4 min · red line 5.2 min', toneDet) +
+    kpi('Open in queue', String(open.length), pend + ' need a decision now', open.length ? 'blue' : 'green');
+  $('phaseRow').innerHTML =
+    '<span class="phase-pill" data-tone="' + ph.tone + '"><i></i>' + esc(ph.label) + '</span>' +
+    '<span>Rolling 4 h window · ' + m.confirmed + ' confirmed failures (' + m.manual + ' caught by humans) · ' + m.falseAlarms + ' false alarms</span>';
+
+  var f = MR.fatigue();
+  var fb = $('fatigue');
+  if (f) {
+    fb.classList.add('show');
+    fb.innerHTML = '<div><b>Fatigue check.</b> ' + f.count + ' of your last ' + f.window + ' decisions were “False alarm”, each taking under 25 s (median ' + Math.round(f.medianSec) + ' s). Ambiguous cases belong in <b>Unresolved</b>, not False alarm. Cleared real failures come back as manual catches and push the manual-catch fraction toward its 15% red line.</div>';
+  } else {
+    fb.classList.remove('show'); fb.innerHTML = '';
+  }
+}
+function kpi(label, val, sub, tone){
+  return '<div class="kpi" data-tone="' + tone + '"><div class="kpi-label">' + label + '</div><div class="kpi-val">' + val + '</div><div class="kpi-sub">' + sub + '</div></div>';
+}
+
+/* ---------- list ---------- */
+function filterCounts(){
+  var all = liveEvents().filter(function(e){ return state.group === 'all' || e.group === state.group; });
+  function n(fn){ return all.filter(fn).length; }
+  return {
+    open: n(function(e){ return MR.isOpen(e); }),
+    pending: n(function(e){ return e.status === 'pending' || MR.isRecheckDue(e); }),
+    unresolved: n(function(e){ return e.status === 'unresolved'; }),
+    resolved: n(function(e){ return e.status === 'confirmed' || e.status === 'false_alarm'; })
+  };
+}
+/* Called every second: updates numbers in place so open dropdowns are never rebuilt. */
+function updateCounts(){
+  var c = filterCounts();
+  document.querySelectorAll('#qfilters .chip').forEach(function(el){
+    var n = el.querySelector('.n'); if (n) n.textContent = c[el.getAttribute('data-f')];
+  });
+  $('cntQueue').textContent = liveEvents().filter(function(e){ return MR.isOpen(e); }).length;
+  $('cntLog').textContent = MR.audit().length;
+}
+function renderFilters(){
+  $('qlayout').classList.toggle('collapsed', !!state.collapsed);
+  if (state.collapsed) {
+    $('qfilters').innerHTML = '<button class="collapse-btn" data-collapse title="Expand list">›</button>';
+    updateCounts();
+    return;
+  }
+  var c = filterCounts();
+  var defs = [['open', 'Open'], ['pending', 'Needs decision'], ['unresolved', 'Unresolved'], ['resolved', 'Resolved']];
+  var h = '<button class="collapse-btn" data-collapse title="Collapse list">‹</button>';
+  h += defs.map(function(d){ return '<button class="chip' + (state.filter === d[0] ? ' active' : '') + '" data-f="' + d[0] + '">' + d[1] + '<span class="n">' + c[d[0]] + '</span></button>'; }).join('');
+  h += '<select class="sel" id="groupSel" aria-label="Filter by group"><option value="all">All groups</option>' +
+    GROUPS.map(function(g){ return '<option' + (state.group === g ? ' selected' : '') + '>' + g + '</option>'; }).join('') + '</select>';
+  $('qfilters').innerHTML = h;
+  updateCounts();
+}
+
+function pinHTML(){
+  var d = state.deviceView && MR.DIRECTORY[state.deviceView];
+  if (!d || liveEvents().some(function(e){ return e.device === state.deviceView; })) return '';
+  return '<div class="qpin' + (state.showDevice ? ' sel' : '') + '" data-pin="1"><span class="pdot"></span><div><div class="dev">' + esc(state.deviceView) + ' · ' + esc(d.officer) + '</div><div class="kind">Viewing device · no alerts</div></div><button data-unpin="1" title="Remove from list">✕</button></div>';
+}
+var lastListHTML = null;
+function setList(html){ if (html !== lastListHTML) { $('qlist').innerHTML = html; lastListHTML = html; } }
+function renderList(){
+  var list = filtered();
+  if (state.collapsed) {
+    setList((pinHTML() ? '<div class="qmini' + (state.showDevice ? ' sel' : '') + '" data-pin="1" title="' + esc(state.deviceView) + '"><span class="pdot" style="width:10px;height:10px;border-radius:50%;background:var(--green)"></span>' + esc(state.deviceView.slice(-3)) + '</div>' : '') + list.map(function(e){
+      var due = MR.isRecheckDue(e);
+      return '<div class="qmini' + (state.selected === e.id && !state.showDevice ? ' sel' : '') + '" data-id="' + e.id + '" title="' + esc(e.device + ' · ' + e.kind) + '"><span class="qdot" data-s="' + (due ? 'pending' : e.status) + '" style="margin:0"></span>' + esc(e.device.slice(-3)) + '</div>';
+    }).join(''));
+    return;
+  }
+  if (!list.length) {
+    setList(pinHTML() + '<div class="empty">' + (state.filter === 'open' ? 'Queue is clear.<br>Use “+ New alert” in the demo bar to simulate an incoming detection.' : 'Nothing in this view.') + '</div>');
+    return;
+  }
+  setList(pinHTML() + list.map(function(e){
+    var due = MR.isRecheckDue(e);
+    var fuTag = e.followup && e.followup.status === 'failed' ? '<br><span class="tag reopen" style="margin-top:4px">Action failed</span>' : e.followup && e.followup.status === 'pending' ? '<br><span class="tag due" style="margin-top:4px">Action in progress</span>' : '';
+    var right = e.status === 'confirmed' || e.status === 'false_alarm' ? '<span class="res-pill ' + e.status + '">' + MR.STATUS_LABEL[e.status] + '</span>' + fuTag :
+      e.status === 'unresolved' ? (due ? '<span class="tag due">Re-check due</span>' : '<span class="tag wait">Re-check ' + inMin(e.decision.nextCheckAt) + '</span>') :
+      '<span>' + ago(e.detectedAt) + '</span>';
+    return '<div class="qitem' + (state.selected === e.id && !state.showDevice ? ' sel' : '') + '" data-id="' + e.id + '">' +
+      '<span class="qdot" data-s="' + (due ? 'pending' : e.status) + '"></span>' +
+      '<div><div class="dev">' + esc(e.device) + ' · ' + esc(e.officer) + '</div>' +
+      '<div class="kind">' + esc(e.kind) + '</div>' +
+      '<div class="meta"><span>' + esc(e.group) + '</span>' +
+        (e.source === 'manual' ? '<span class="tag manual">Manual report</span>' : '<span class="tag auto">Auto</span><span><span class="confbar"><i style="width:' + Math.round(e.confidence * 100) + '%"></i></span> ' + Math.round(e.confidence * 100) + '%</span>') +
+        (e.reopenedFrom ? '<span class="tag reopen">Missed by review</span>' : '') +
+      '</div></div>' +
+      '<div class="right">' + right + '</div></div>';
+  }).join(''));
+}
+
+/* ---------- detail ---------- */
+function trackCells(ranges){
+  var h = '';
+  for (var i = 0; i < 45; i++) {
+    var m = 44 - i, bad = false;
+    (ranges || []).forEach(function(r){ if (m <= r[0] && m >= r[1]) bad = true; });
+    h += '<i' + (bad ? ' class="bad"' : '') + '></i>';
+  }
+  return h;
+}
+
+function sigCard(device, e){
+  var sg = MR.signals(device);
+  var rows = [['Heartbeat', 'hb', '4 per min expected'], ['Recording', 'rec', '30 fps expected'], ['Payload upload', 'up', '~200 KB/s expected']];
+  var h = '<div class="card"><h3>Signal evidence · last 45 minutes</h3>';
+  rows.forEach(function(r){
+    var a = sg[r[1]], last = a[a.length - 1];
+    h += '<div class="track"><span' + (r[1] === 'hb' ? ' title="The device sends a ping every 15 s"' : '') + '>' + r[0] + '<small>' + r[2] + '</small></span><div class="cells">' + a.map(function(c, i){
+      return '<i class="' + c.s + '" data-sig="' + esc(r[0] + '|' + (44 - i) + '|' + c.t) + '"></i>';
+    }).join('') + '</div><span class="now ' + last.s + '">' + esc(last.v) + '</span></div>';
+  });
+  h += '<div class="axis"><span></span><div><span>−45 min</span><span>−30</span><span>−15</span><span>now</span></div><span></span></div>' +
+    '<div class="sig-foot"><span id="sigReadout">Hover a cell for the reading at that minute.</span>' +
+    '<span class="sig-legend"><span><i style="background:#CFEBDC"></i>Normal</span><span><i style="background:var(--alert)"></i>Abnormal</span><span><i style="background:repeating-linear-gradient(45deg,#DDE1E8,#DDE1E8 2px,#F1F3F6 2px,#F1F3F6 5px)"></i>No data</span></span></div>';
+  if (e && e.source === 'manual' && !e.tracks.hb.length && !e.tracks.rec.length && !e.tracks.up.length) h += '<div class="rule-note" style="margin-top:10px">All system telemetry looks normal. This failure was only visible to a human.</div>';
+  return h + '</div>';
+}
+
+function snapTile(label, val, level, flag){
+  return '<div' + (level ? ' class="' + level + '"' : '') + '><div class="l">' + label + '</div><div class="v">' + esc(val) + (flag ? '<span class="flag">⚠ ' + flag + '</span>' : '') + '</div></div>';
+}
+function snapHTML(sn){
+  var bat = sn.battery, up = parseInt((sn.lastUpload.match(/(\d+)\s*min/) || [0, 0])[1], 10);
+  var batL = bat <= 20 ? ['alert', 'Critical'] : bat <= 40 ? ['warn', 'Low'] : ['', ''];
+  var upL = up >= 10 ? ['alert', 'Stale'] : up >= 5 ? ['warn', 'Slow'] : ['', ''];
+  var fr = sn.lastFrame, frL = /frozen|black/i.test(fr) ? ['alert', /black/i.test(fr) ? 'Black feed' : 'Frozen'] : /local only/i.test(fr) ? ['warn', 'Not uploading'] : ['', ''];
+  return '<div class="snap">' + snapTile('Battery', bat + '%', batL[0], batL[1]) + snapTile('Channel', sn.channel, '', '') +
+    snapTile('Last upload', sn.lastUpload, upL[0], upL[1]) + snapTile('Last frame', fr, frL[0], frL[1]) + '</div>';
+}
+
+function renderDeviceView(dev){
+  var d = MR.DIRECTORY[dev];
+  var prior = liveEvents().filter(function(x){ return x.device === dev; });
+  var earlier = MR.events().filter(function(x){ return x.history && x.device === dev; }).length;
+  var m = '<div class="card"><div class="d-head"><div class="t1 mono">' + esc(dev) + ' <span style="font-family:\'IBM Plex Sans\';font-weight:600"> · ' + esc(d.officer) + '</span></div>' +
+    '<div class="t2">' + esc(d.group) + ' · ' + esc(d.area) + '</div>' +
+    '<div class="metaline"><span><span class="res-pill false_alarm">No open alerts</span></span></div></div>' + snapHTML(MR.deviceSnapshot(dev)) +
+    '<div class="row-actions"><a class="btn" href="' + groupPage(d.group) + '">Open ' + esc(d.group) + ' detail</a><button class="btn" data-act="call">Call officer</button></div></div>';
+  m += sigCard(dev, null);
+  m += '<div class="card"><h3>Record for ' + esc(dev) + '</h3>' + prior.map(function(x){ return '<div class="rec-line"><span>' + x.id + ' · ' + esc(x.kind) + '</span><span class="res-pill ' + x.status + '">' + MR.STATUS_LABEL[x.status] + '</span></div>'; }).join('') +
+    '<div class="rule-note">' + (prior.length ? '' : 'No alerts this shift. ') + earlier + ' earlier alert' + (earlier === 1 ? '' : 's') + ' resolved in the last 12 h.</div></div>';
+  var side = '<div class="card"><h3>Something look wrong?</h3><div class="rule-note" style="margin:-4px 0 12px;line-height:1.55">The system sees nothing abnormal on this device. If you or the field crew see a problem, file a manual report and it enters the review queue.</div>' +
+    '<div class="form-row" style="margin-top:0"><label class="fl">What did you observe? (min. 10 characters)</label><textarea id="fReport" placeholder="e.g. Officer says the lens is covered."></textarea></div>' +
+    '<div class="submit-row"><span class="rule-note">Filed as a manual report.</span><button class="btn primary" id="reportBtn" disabled>File report</button></div></div>';
+  $('detail').innerHTML = '<div class="devchip"><span>Viewing device <b>' + esc(dev) + '</b>. It stays pinned at the top of the list.</span></div>' +
+    '<div class="dgrid"><div class="dmain">' + m + '</div><div class="dside">' + side + '</div></div>';
+}
+
+function renderDetail(){
+  if (state.showDevice && state.deviceView && MR.DIRECTORY[state.deviceView]) { renderDeviceView(state.deviceView); return; }
+  var e = state.selected ? MR.byId(state.selected) : null;
+  if (!e) {
+    $('detail').innerHTML = '<div class="card"><div class="empty">Select an alert on the left to review its evidence and record a decision.</div></div>';
+    return;
+  }
+  var list = filtered(), idx = list.map(function(x){ return x.id; }).indexOf(e.id);
+  var nav = idx < 0 ? '' : '<div class="dnav"><span>Alert ' + (idx + 1) + ' of ' + list.length + ' in this view</span><span><button class="btn" data-nav="-1"' + (idx === 0 ? ' disabled' : '') + '>‹ Prev</button><button class="btn" data-nav="1"' + (idx === list.length - 1 ? ' disabled' : '') + '>Next ›</button></span></div>';
+
+  var m = '';
+  m += '<div class="card"><div class="d-head">' +
+    '<div class="t1 mono">' + esc(e.device) + ' <span style="font-family:\'IBM Plex Sans\';font-weight:600"> · ' + esc(e.officer) + '</span></div>' +
+    '<div class="t2">' + esc(e.group) + ' · ' + esc(e.area) + ' · ' + esc(e.kind) + '</div>' +
+    '<div class="metaline"><span class="mono">' + e.id + '</span>' +
+      (e.source === 'manual' ? '<span><span class="tag manual">Manual report</span> by <b>' + esc(e.reportedBy || '') + '</b></span>' : '<span><span class="tag auto">Auto-detected</span> confidence <b>' + Math.round(e.confidence * 100) + '%</b></span>') +
+      '<span>Detected <b>' + MR.fmtTime(e.detectedAt) + ' UTC</b> · ' + ago(e.detectedAt) + '</span><span>Failure began ~' + e.lagMin + ' min earlier</span></div>' +
+    '<div class="sum">' + esc(e.summary) + '</div></div>';
+  if (e.snapshot) m += snapHTML(e.snapshot);
+  m += '<div class="row-actions"><a class="btn" href="' + groupPage(e.group) + '">Open ' + esc(e.group) + ' detail</a>' +
+    '<button class="btn" data-act="logs">Download device logs</button><button class="btn" data-act="call">Call officer</button></div></div>';
+
+  m += sigCard(e.device, e);
+
+  m += '<div class="card"><h3>System reasoning</h3>' + (e.hints.length ? '<ul class="hints">' + e.hints.map(function(x){
+    return '<li><span class="w ' + x.w + '">' + (x.w === 'for' ? 'Points to failure' : 'Points to benign') + '</span><span>' + esc(x.t) + '</span></li>';
+  }).join('') + '</ul>' : '<div class="rule-note">No reasoning recorded.</div>') + '</div>';
+
+  m += '<div class="card"><h3>Memo history</h3>' + (e.memos.length ? '<div class="memos">' + e.memos.slice().sort(function(a, b){ return b.at - a.at; }).map(function(mm){
+    return '<div class="memo"><div class="mh">' + MR.fmtTime(mm.at) + ' UTC · ' + esc(mm.by) + '</div>' + esc(mm.text) + '</div>';
+  }).join('') + '</div>' : '<div class="rule-note">No memos for this device.</div>') + '</div>';
+
+  var prior = liveEvents().filter(function(x){ return x.device === e.device && x.id !== e.id; });
+  var earlier = MR.events().filter(function(x){ return x.history && x.device === e.device; }).length;
+  m += '<div class="card"><h3>Record for ' + esc(e.device) + '</h3>' +
+    prior.map(function(x){ return '<div class="rec-line"><span>' + x.id + ' · ' + esc(x.kind) + '</span><span class="res-pill ' + x.status + '">' + MR.STATUS_LABEL[x.status] + '</span></div>'; }).join('') +
+    '<div class="rule-note">' + (prior.length ? '' : 'No other alerts this shift. ') + earlier + ' earlier alert' + (earlier === 1 ? '' : 's') + ' resolved in the last 12 h.</div></div>';
+
+  $('detail').innerHTML = nav + '<div class="dgrid"><div class="dmain">' + m + '</div><div class="dside"><div class="card" id="decisionCard">' + decisionHTML(e) + '</div></div></div>';
+}
+
+function groupPage(g){
+  return {'GROUP A':'group-detail-a.html','GROUP B':'group-detail.html','GROUP C':'group-detail-c.html','GROUP D':'group-detail-d.html','GROUP E':'group-detail-e.html'}[g] || 'index.html';
+}
+
+var ACTIONS = ['Dispatch swap', 'Resync device', 'Escalate to support', 'Monitor closely'];
+var CATEGORIES = ['Known environment (shielded or sensitive area)', 'Scheduled or authorised pause', 'Shared network fault, not the device', 'Duplicate of an earlier alert', 'Sensor glitch, device healthy'];
+var CAT_SHORT = ['Known environment', 'Authorised pause', 'Network fault', 'Duplicate alert', 'Sensor glitch'];
+
+function followupHTML(e){
+  var f = e.followup, t = function(ms){ return MR.fmtTime(ms) + ' UTC'; };
+  if (f.status === 'monitoring') return '<div class="fu"><div class="fh">Follow-up</div><span class="st">Monitoring</span> · no action dispatched. Keep an eye on ' + esc(e.device) + '.</div>';
+  var att = f.attempts > 1 ? ' · attempt ' + f.attempts : '';
+  if (f.status === 'pending') return '<div class="fu pending"><div class="fh">Follow-up · ' + esc(f.action) + att + '</div><span class="st">● In progress</span> · started ' + t(f.startedAt) + '. The result will appear here.</div>';
+  if (f.status === 'success') return '<div class="fu success"><div class="fh">Follow-up · ' + esc(f.action) + att + '</div><span class="st">✓ Completed</span> at ' + t(f.doneAt) + '.</div>';
+  return '<div class="fu failed"><div class="fh">Follow-up · ' + esc(f.action) + att + '</div><span class="st">✕ Failed</span> at ' + t(f.doneAt) + '. The device did not respond.' +
+    '<div class="btns"><button class="btn" data-fu="retry">Retry ' + esc(f.action.toLowerCase()) + '</button>' +
+    (f.action !== 'Escalate to support' ? '<button class="btn primary" data-fu="escalate">Escalate to support</button>' : '') + '</div></div>';
+}
+
+function decisionHTML(e){
+  var f = state.form;
+  var d = e.decision;
+  /* resolved: read-only */
+  if (e.status === 'confirmed' || e.status === 'false_alarm') {
+    var h = '<h3>Decision recorded</h3><div class="result"><span class="res-pill ' + e.status + '">' + MR.STATUS_LABEL[e.status] + '</span><div>' +
+      '<div class="big">' + esc(d.by) + ' · ' + MR.fmtTime(d.at) + ' UTC' + (d.reviewSec != null ? ' · reviewed in ' + d.reviewSec + ' s' : '') + '</div>' +
+      '<div class="small">' + (e.status === 'confirmed' ? 'Follow-up: <b>' + esc(d.action) + '</b>. ' : 'Reason: <b>' + esc(d.category) + '</b>. ') + esc(d.note) + '</div></div></div>';
+    if (e.status === 'confirmed' && e.followup) h += followupHTML(e);
+    if (e.status === 'false_alarm' && d.live) {
+      h += '<div class="row-actions"><button class="btn" data-act="missed">Demo: field says problem persists</button><span class="rule-note" style="align-self:center">Simulates a reviewer miss. It re-enters as a manual report and raises the manual-catch fraction.</span></div>';
+    }
+    return h;
+  }
+  var h2 = '<h3>Your decision</h3>';
+  if (e.status === 'unresolved' && d) {
+    h2 += '<div class="rule-note" style="margin:-4px 0 12px">Previously marked Unresolved by ' + esc(d.by) + ' at ' + MR.fmtTime(d.at) + ' UTC: “' + esc(d.note) + '” Re-check ' + inMin(d.nextCheckAt) + '.</div>';
+  }
+  h2 += '<div class="choices">' +
+    choice('confirmed', 'Confirmed failure', 'The device has failed or is not recording. Trigger a response.') +
+    choice('unresolved', 'Unresolved', 'Not enough evidence yet. It returns to the queue at the time you set.') +
+    choice('false_alarm', 'False alarm', 'The system was wrong and the device is healthy. Needs a reason.') + '</div>';
+
+  if (f.choice === 'confirmed') {
+    h2 += '<div class="form-row"><label class="fl">Follow-up action</label><select id="fAction"><option value="">Choose…</option>' + ACTIONS.map(function(a){ return '<option' + (f.action === a ? ' selected' : '') + '>' + a + '</option>'; }).join('') + '</select></div>';
+  } else if (f.choice === 'unresolved') {
+    h2 += '<div class="form-row"><label class="fl">Re-check in</label><div class="seg">' + [5, 10, 15].map(function(m){ return '<button data-nc="' + m + '"' + (f.nextCheck === m ? ' class="on"' : '') + '>' + m + ' min</button>'; }).join('') + '</div></div>';
+  } else if (f.choice === 'false_alarm') {
+    h2 += '<div class="form-row"><label class="fl">Why is it a false alarm?</label><select id="fCat"><option value="">Choose…</option>' + CATEGORIES.map(function(c){ return '<option' + (f.category === c ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select></div>';
+    if (needsVerify(e)) {
+      h2 += '<div class="form-row"><label class="check"><input type="checkbox" id="fVer"' + (f.verified ? ' checked' : '') + '><span>The system was ' + Math.round(e.confidence * 100) + '% confident this is a failure. I confirmed it is healthy with a second source (spoke to the officer or watched the live footage).</span></label></div>';
+    }
+  }
+  if (f.choice) {
+    var ph = f.choice === 'unresolved' ? 'What do you still need to find out?' : f.choice === 'confirmed' ? 'What did you see that confirms the failure?' : 'What evidence shows the device is healthy?';
+    h2 += '<div class="form-row"><label class="fl">Note (required, min. 10 characters) <span style="font-weight:400;color:var(--text-faint)" id="noteCount"></span></label><textarea id="fNote" placeholder="' + ph + '">' + esc(f.note) + '</textarea></div>';
+  }
+  var missing = missingFields(e);
+  h2 += '<div class="needs" id="needs">' + (f.choice ? (missing.length ? 'Still needed: <b>' + missing.join(', ') + '</b>' : 'Ready to record.') : 'Choose one of the three outcomes. There is no one-click pass.') + '</div>';
+  h2 += '<div class="submit-row"><span class="rule-note">Decisions are written permanently to the audit log.</span><button class="btn primary" id="submitBtn"' + (f.choice && !missing.length ? '' : ' disabled') + '>Record decision</button></div>';
+  return h2;
+}
+function choice(c, t, d){
+  return '<button class="choice' + (state.form.choice === c ? ' on' : '') + '" data-c="' + c + '"><div class="ct"><i></i>' + t + '</div><div class="cd">' + d + '</div></button>';
+}
+function needsVerify(e){ return e.source === 'auto' && e.confidence != null && e.confidence >= 0.8; }
+function missingFields(e){
+  var f = state.form, m = [];
+  if (!f.choice) return ['an outcome'];
+  if (f.choice === 'confirmed' && !f.action) m.push('follow-up action');
+  if (f.choice === 'false_alarm' && !f.category) m.push('reason');
+  if (f.choice === 'false_alarm' && needsVerify(e) && !f.verified) m.push('second-source check');
+  if (f.note.trim().length < 10) m.push('note');
+  return m;
+}
+function refreshSubmitState(){
+  var e = MR.byId(state.selected); if (!e) return;
+  var m = missingFields(e);
+  var btn = $('submitBtn'); if (btn) btn.disabled = !!m.length;
+  var n = $('needs'); if (n) n.innerHTML = m.length ? 'Still needed: <b>' + m.join(', ') + '</b>' : 'Ready to record.';
+  var c = $('noteCount'); if (c) c.textContent = '· ' + state.form.note.trim().length + ' chars';
+}
+
+/* ---------- metrics ---------- */
+function lineChart(opts){
+  var W = 560, H = 230, L = 44, R = 16, T = 14, B = 34;
+  var data = opts.data, pw = W - L - R, ph = H - T - B;
+  function x(i){ return L + pw * (i / (data.length - 1)); }
+  function y(v){ return T + ph * (1 - (v - opts.min) / (opts.max - opts.min)); }
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="' + esc(opts.label) + '">';
+  for (var g = 0; g <= 3; g++) {
+    var v = opts.min + (opts.max - opts.min) * g / 3;
+    s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="#E2E6EC"/><text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" font-size="10.5" fill="#8A93A1" text-anchor="end">' + opts.fmt(v) + '</text>';
+  }
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(opts.base) + '" y2="' + y(opts.base) + '" stroke="#8A93A1" stroke-dasharray="5 4"/>';
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(opts.red) + '" y2="' + y(opts.red) + '" stroke="#FF3838" stroke-dasharray="5 4"/>';
+  var pts = [];
+  data.forEach(function(d, i){ if (d.v != null) pts.push([x(i), y(Math.min(opts.max, Math.max(opts.min, d.v))), d.v]); });
+  if (pts.length) s += '<polyline fill="none" stroke="#005FBE" stroke-width="2.2" points="' + pts.map(function(p){ return p[0] + ',' + p[1]; }).join(' ') + '"/>';
+  pts.forEach(function(p){
+    var bad = p[2] > opts.red;
+    s += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4.5" fill="' + (bad ? '#FF3838' : '#005FBE') + '" stroke="#fff" stroke-width="1.5"/>';
+  });
+  data.forEach(function(d, i){ s += '<text x="' + x(i) + '" y="' + (H - 12) + '" font-size="10.5" fill="#8A93A1" text-anchor="middle">' + d.label + '</text>'; });
+  return s + '</svg>';
+}
+function renderMetrics(){
+  var tr = MR.trend();
+  $('charts').innerHTML =
+    '<div class="card"><div class="chart-title">Manual-catch fraction</div><div class="chart-sub">Share of confirmed failures first caught by a human, per 2 h. Rising means silent failures are slipping past the system, or past review.</div>' +
+    lineChart({label:'Manual-catch fraction by 2 hour bucket', data: tr.map(function(t){ return {label:t.label, v:t.manualFrac}; }), min:0, max:0.3, base:0.10, red:0.15, fmt:function(v){ return Math.round(v * 100) + '%'; }}) +
+    '<div class="chart-cap"><span class="base">baseline 10%</span><span class="red">red line 15%</span></div></div>' +
+    '<div class="card"><div class="chart-title">Median detection time</div><div class="chart-sub">Minutes from failure onset to detection, per 2 h. Slipping here is gradual and recoverable; it only hurts past the red line.</div>' +
+    lineChart({label:'Median detection time by 2 hour bucket', data: tr.map(function(t){ return {label:t.label, v:t.medianDetect}; }), min:0, max:9, base:4, red:5.2, fmt:function(v){ return v.toFixed(0) + 'm'; }}) +
+    '<div class="chart-cap"><span class="base">baseline 4 min</span><span class="red">red line 5.2 min</span></div></div>';
+}
+
+/* ---------- log ---------- */
+var logF = {q: '', outcome: 'all', group: 'all'};
+function logRows(){
+  return MR.audit().filter(function(x){
+    var ev = x.eventId ? MR.byId(x.eventId) : null;
+    if (logF.group !== 'all' && (!ev || ev.group !== logF.group)) return false;
+    if (logF.outcome !== 'all' && x.outcome !== logF.outcome) return false;
+    if (logF.q) {
+      var hay = (x.actor + ' ' + x.action + ' ' + x.just + ' ' + (x.eventId || '') + ' ' + (ev ? ev.device + ' ' + ev.group : '')).toLowerCase();
+      if (hay.indexOf(logF.q.toLowerCase()) < 0) return false;
+    }
+    return true;
+  });
+}
+function renderLog(){
+  var a = MR.audit();
+  var rows = logRows();
+  var bar = '<div class="logbar"><input type="search" id="logQ" placeholder="Search device, person, note…" value="' + esc(logF.q) + '">' +
+    '<select id="logOutcome"><option value="all">All outcomes</option><option value="success"' + (logF.outcome === 'success' ? ' selected' : '') + '>Done</option><option value="pending"' + (logF.outcome === 'pending' ? ' selected' : '') + '>Pending</option><option value="failed"' + (logF.outcome === 'failed' ? ' selected' : '') + '>Failed</option></select>' +
+    '<select id="logGroup"><option value="all">All groups</option>' + GROUPS.map(function(g){ return '<option' + (logF.group === g ? ' selected' : '') + '>' + g + '</option>'; }).join('') + '</select>' +
+    '<span class="sp"></span><span class="logmeta">' + rows.length + ' of ' + a.length + ' entries</span><button class="btn" id="logExport">Export CSV</button></div>';
+  var list;
+  if (!a.length) list = '<div class="empty">No decisions yet. Record one from the review queue.</div>';
+  else if (!rows.length) list = '<div class="empty">No entries match these filters.</div>';
+  else list = '<ul class="audit">' + rows.map(function(x){
+    var cls = x.outcome === 'pending' ? 'unresolved' : x.outcome === 'failed' ? 'confirmed' : 'false_alarm';
+    var lbl = x.outcome === 'pending' ? '● Pending' : x.outcome === 'failed' ? '✕ Failed' : '✓ Done';
+    var ev = x.eventId ? MR.byId(x.eventId) : null;
+    return '<li><span class="ts">' + MR.fmtStamp(x.ts) + '</span><span>' + esc(x.actor) + '</span><span>' + esc(x.action) + (ev ? ' <span class="tag auto">' + esc(ev.group) + '</span>' : '') + (x.just ? '<span class="just">“' + esc(x.just) + '”</span>' : '') + '</span>' +
+      '<span class="res-pill ' + cls + '">' + lbl + '</span></li>';
+  }).join('') + '</ul>';
+  var focus = document.activeElement && document.activeElement.id;
+  $('logBody').innerHTML = bar + list;
+  if (focus === 'logQ') { var q = $('logQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function exportLog(){
+  var rows = logRows();
+  function c(v){ return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+  var out = ['time,actor,action,outcome,note,event,group,device'];
+  rows.forEach(function(x){
+    var ev = x.eventId ? MR.byId(x.eventId) : null;
+    out.push([MR.fmtStamp(x.ts), x.actor, x.action, x.outcome, x.just, x.eventId || '', ev ? ev.group : '', ev ? ev.device : ''].map(c).join(','));
+  });
+  var blob = new Blob(['\ufeff' + out.join('\n')], {type: 'text/csv;charset=utf-8'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'verification-log.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Exported ' + rows.length + ' entries.');
+}
+$('logBody').addEventListener('input', function(ev){ if (ev.target.id === 'logQ') { logF.q = ev.target.value; renderLog(); } });
+$('logBody').addEventListener('change', function(ev){
+  if (ev.target.id === 'logOutcome') logF.outcome = ev.target.value;
+  else if (ev.target.id === 'logGroup') logF.group = ev.target.value;
+  else return;
+  renderLog();
+});
+$('logBody').addEventListener('click', function(ev){ if (ev.target.id === 'logExport') exportLog(); });
+
+/* ---------- render orchestration ---------- */
+function renderAll(keepDetail){
+  renderKpis(); renderFilters(); renderList();
+  if (!keepDetail) renderDetail();
+  if (state.tab === 'metrics') renderMetrics();
+  if (state.tab === 'log') renderLog();
+  $('simClock').textContent = MR.fmtTime(MR.now()) + ':' + String(new Date(MR.now()).getUTCSeconds()).padStart(2, '0') + ' UTC';
+}
+
+function nextOpen(){
+  var l = filtered().filter(function(e){ return e.status === 'pending' || MR.isRecheckDue(e); });
+  return l.length ? l[0].id : null;
+}
+
+/* ---------- events ---------- */
+$('tabs').addEventListener('click', function(ev){
+  var b = ev.target.closest('.tab'); if (!b) return;
+  state.tab = b.getAttribute('data-tab');
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('active', t === b); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.toggle('active', p.id === 'pane-' + state.tab); });
+  renderAll(true);
+});
+
+$('qfilters').addEventListener('click', function(ev){
+  if (ev.target.closest('[data-collapse]')) {
+    state.collapsed = !state.collapsed;
+    try { localStorage.setItem('mr_vq_collapsed', state.collapsed ? '1' : ''); } catch(e){}
+    renderAll(true); return;
+  }
+  var c = ev.target.closest('.chip'); if (!c) return;
+  state.filter = c.getAttribute('data-f'); renderAll(true);
+});
+$('qfilters').addEventListener('change', function(ev){
+  if (ev.target.id === 'groupSel') { state.group = ev.target.value; renderAll(true); }
+});
+$('qlist').addEventListener('click', function(ev){
+  if (ev.target.closest('[data-unpin]')) {
+    state.deviceView = null; state.showDevice = false; syncUrl();
+    if (!state.selected) { var n0 = nextOpen(); if (n0) select(n0); }
+    renderAll(); return;
+  }
+  if (ev.target.closest('[data-pin]')) { state.showDevice = true; syncUrl(); renderAll(); return; }
+  var it = ev.target.closest('.qitem, .qmini'); if (!it) return;
+  select(it.getAttribute('data-id')); syncUrl(); renderAll();
+});
+
+$('detail').addEventListener('mouseover', function(ev){
+  var c = ev.target.closest('i[data-sig]'); if (!c) return;
+  var p = c.getAttribute('data-sig').split('|'), r = $('sigReadout'); if (!r) return;
+  r.innerHTML = '<b>' + (p[1] === '0' ? 'now' : '−' + p[1] + ' min') + '</b> · ' + esc(p[0]) + ': ' + esc(p.slice(2).join('|'));
+});
+$('detail').addEventListener('click', function(ev){
+  if (!state.showDevice) return;
+  var act = ev.target.closest('[data-act]');
+  if (act && act.getAttribute('data-act') === 'call') { toast('Calling ' + MR.DIRECTORY[state.deviceView].officer + '. Logged to communication log.'); return; }
+  if (ev.target.id === 'reportBtn') {
+    var note = $('fReport').value.trim(); if (note.length < 10) return;
+    var r = MR.addManualReport({device: state.deviceView, note: note});
+    toast('Manual report filed as ' + r.id + '.'); state.deviceView = null; state.filter = 'open'; select(r.id); syncUrl(); renderAll();
+  }
+});
+$('detail').addEventListener('input', function(ev){
+  if (ev.target.id === 'fReport') $('reportBtn').disabled = ev.target.value.trim().length < 10;
+});
+$('detail').addEventListener('click', function(ev){
+  if (state.showDevice) return;
+  var e = MR.byId(state.selected); if (!e) return;
+  var fub = ev.target.closest('[data-fu]');
+  if (fub) {
+    MR.retryFollowup(e.id, fub.getAttribute('data-fu') === 'escalate' ? 'Escalate to support' : null);
+    toast(fub.getAttribute('data-fu') === 'escalate' ? 'Escalated. Waiting for support.' : 'Retrying…');
+    renderAll(); return;
+  }
+  var nv = ev.target.closest('[data-nav]');
+  if (nv) {
+    var l = filtered(), i = l.map(function(x){ return x.id; }).indexOf(state.selected) + parseInt(nv.getAttribute('data-nav'), 10);
+    if (l[i]) { select(l[i].id); renderAll(); }
+    return;
+  }
+  var ch = ev.target.closest('.choice');
+  if (ch) { state.form.choice = ch.getAttribute('data-c'); rerenderDecision(); return; }
+  var nc = ev.target.closest('[data-nc]');
+  if (nc) { state.form.nextCheck = parseInt(nc.getAttribute('data-nc'), 10); rerenderDecision(); return; }
+  var act = ev.target.closest('[data-act]');
+  if (act) {
+    var a = act.getAttribute('data-act');
+    if (a === 'logs') toast('Diagnostic package for ' + e.device + ' queued for download.');
+    if (a === 'call') toast('Calling ' + e.officer + ' on ' + (e.snapshot ? e.snapshot.channel : 'assigned channel') + '. Logged to communication log.');
+    if (a === 'missed') {
+      var r = MR.reopenAsMissed(e.id);
+      toast('Field report received. ' + e.device + ' re-entered the queue as ' + r.id + '.');
+      state.filter = 'open'; select(r.id); renderAll();
+    }
+    return;
+  }
+  if (ev.target.id === 'submitBtn') submit(e);
+});
+$('statusbar').addEventListener('click', function(ev){
+  if (ev.target.closest('#healthBtn')) document.querySelector('[data-tab="metrics"]').click();
+});
+$('detail').addEventListener('input', function(ev){
+  var t = ev.target;
+  if (t.id === 'fNote') state.form.note = t.value;
+  else if (t.id === 'fAction') state.form.action = t.value;
+  else if (t.id === 'fCat') state.form.category = t.value;
+  else if (t.id === 'fVer') state.form.verified = t.checked;
+  else return;
+  refreshSubmitState();
+});
+function rerenderDecision(){
+  var e = MR.byId(state.selected);
+  $('decisionCard').innerHTML = decisionHTML(e);
+  var ta = $('fNote'); if (ta && !ta.value) ta.focus();
+  refreshSubmitState();
+}
+
+function submit(e){
+  var f = state.form;
+  if (missingFields(e).length) return;
+  var sec = Math.max(1, Math.round((Date.now() - state.openedAt) / 1000));
+  MR.decide(e.id, {
+    status: f.choice, note: f.note.trim(), action: f.action, category: f.category,
+    nextCheckMin: f.choice === 'unresolved' ? f.nextCheck : null, verified: f.verified, reviewSec: sec
+  });
+  toast(MR.STATUS_LABEL[f.choice] + ' recorded for ' + e.device + '.');
+  var nxt = nextOpen();
+  if (nxt) select(nxt); else { state.selected = e.id; state.form = null; }
+  renderAll();
+}
+
+$('dAlert').addEventListener('click', function(){
+  var m = MR.inject(1)[0]; toast('New alert queued: ' + m.device + ' · ' + m.kind);
+  state.filter = 'open'; renderAll(true);
+});
+$('dBurst').addEventListener('click', function(){
+  MR.inject(6); toast('6 alerts queued. This is what a high-pressure shift looks like.');
+  state.filter = 'open'; renderAll(true);
+});
+$('dReset').addEventListener('click', function(){
+  MR.reset(); state.filter = 'open'; state.group = 'all';
+  var n = nextOpen(); if (n) select(n); else { state.selected = null; state.form = null; }
+  toast('Test data reset.'); renderAll();
+});
+
+function syncUrl(){
+  var u = new URL(location.href);
+  var dev = state.showDevice ? state.deviceView : (state.selected && MR.byId(state.selected) ? MR.byId(state.selected).device : null);
+  if (dev) u.searchParams.set('device', dev); else u.searchParams.delete('device');
+  if (u.href !== location.href) history.replaceState(null, '', u.href);
+}
+
+/* ---------- boot ---------- */
+(function boot(){
+  if (!window.MR || !MR.signals || !MR.registerDevice) {
+    $('detail').innerHTML = '<div class="card"><div class="empty">The page script is out of date. Hard refresh (Cmd+Shift+R) to load the latest version.</div></div>';
+    return;
+  }
+  MR.tickFollowups();
+  var dev = params.get('device');
+  if (dev && /^BWC-[A-Z0-9]+$/.test(dev)) {
+    MR.registerDevice(dev, {officer: params.get('name') || null, area: params.get('area') || null,
+      battery: params.get('bat') != null ? parseInt(params.get('bat'), 10) : null, channel: params.get('ch') || null});
+  } else { dev = null; }
+  var target = null;
+  if (dev) {
+    var m = liveEvents().filter(function(e){ return e.device === dev; }).sort(function(a, b){ return queueRank(a) - queueRank(b) || b.detectedAt - a.detectedAt; });
+    if (m.length) { target = m[0].id; if (!MR.isOpen(m[0])) state.filter = 'all'; state.group = m[0].group; }
+    else { state.deviceView = dev; state.showDevice = true; state.group = liveEvents().some(function(e){ return e.group === MR.DIRECTORY[dev].group; }) ? MR.DIRECTORY[dev].group : 'all'; }
+  }
+  var from = params.get('from');
+  var cr = '<a href="index.html">Dashboard</a><span>›</span>';
+  if (from && /^GROUP [A-Z]$/.test(from)) cr += '<a href="' + groupPage(from) + '">' + esc(from) + '</a><span>›</span>';
+  $('crumbs').innerHTML = cr + '<span class="cur">Verification' + (dev ? ' · ' + esc(dev) : '') + '</span>';
+  if (!target && !state.showDevice) target = nextOpen() || (filtered()[0] || {}).id;
+  if (target) select(target);
+  renderAll();
+  setInterval(function(){
+    var fuChanged = MR.tickFollowups();
+    renderKpis(); updateCounts(); renderList();
+    if (fuChanged) {
+      var cur = state.selected && MR.byId(state.selected);
+      if (cur && !state.showDevice && cur.status === 'confirmed') renderDetail();
+      if (state.tab === 'log') renderLog();
+    }
+    $('simClock').textContent = MR.fmtTime(MR.now()) + ':' + String(new Date(MR.now()).getUTCSeconds()).padStart(2, '0') + ' UTC';
+  }, 1000);
+})();
+
+})();
+</script>
+</body>
+</html>

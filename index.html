@@ -876,6 +876,16 @@
     color: var(--text-faint);
     font-size: 14px;
   }
+
+  /* ---------- VERIFICATION ENTRY ---------- */
+  .vq-btn{ display:inline-flex; align-items:center; gap:8px; font-family:'IBM Plex Sans',sans-serif; font-size:12px; font-weight:600; padding:8px 14px; border-radius:9px; background:var(--primary); color:#fff; text-decoration:none; }
+  .vq-btn:hover{ background:var(--primary-dark); }
+  .vq-btn .vq-n{ background:#fff; color:var(--primary); border-radius:100px; padding:1px 8px; font-size:11px; }
+  .vq-chip{ display:inline-flex; align-items:center; gap:6px; width:fit-content; font-size:11.5px; font-weight:600; padding:3px 9px; border-radius:100px; text-decoration:none; margin-top:2px; }
+  .vq-chip.pend{ background:var(--amber-tint); color:var(--amber); }
+  .vq-chip.fail{ background:var(--alert-tint); color:var(--alert-dark); }
+  .vq-chip.clear{ background:var(--green-tint); color:var(--green); }
+  .vq-chip:hover{ filter:brightness(.95); }
 </style>
 </head>
 <body>
@@ -888,6 +898,7 @@
       <div class="subtitle">Command center overview · all deployed groups</div>
     </div>
     <div style="display:flex; align-items:center; gap:20px;">
+      <a class="vq-btn" href="verification.html" id="vqBtn">Verification queue <span class="vq-n" id="vqN">0</span></a>
       <div class="view-toggle">
         <button id="viewRow" class="active">Row</button>
         <button id="viewBox">Box</button>
@@ -916,6 +927,7 @@
 
 </div>
 
+<script src="mr-store.js?v=13"></script>
 <script>
 (function(){
 
@@ -1003,6 +1015,15 @@
 
   // Persist the data model so group-detail.html can read it without a backend.
   try { sessionStorage.setItem('mr_groups', JSON.stringify(groups)); } catch(e){}
+
+  // Verification outcomes feed back into the group counts and risk (shared store, Screen 3).
+  if (window.MR) groups.forEach(function(g){
+    var adj = MR.adjustedAbnormal(g.code, g.abnormal);
+    if (adj === g.abnormal) return;
+    g.baseAbnormal = g.abnormal; g.abnormal = adj;
+    if (adj === 0 && g.status !== 'green') { g.status = 'green'; g.riskTag = 'Normal'; g.brief = 'All flagged devices were cleared by verification.'; }
+    else if (adj > 0 && g.status === 'green') { g.status = 'yellow'; g.riskTag = 'Medium risk'; g.brief = adj + ' device' + (adj > 1 ? 's' : '') + ' confirmed abnormal through verification.'; }
+  });
 
   // Sort: red > yellow > green (group-level), stable within tier
   const order = { red: 0, yellow: 1, green: 2 };
@@ -1094,7 +1115,7 @@
 
           <div class="number-col">
             <div class="count-line"><span class="abnormal">${g.abnormal} abnormal</span> / ${g.total} total devices</div>
-            <div class="count-sub">${g.devices.length} shown in detail</div>
+            <div class="count-sub">${g.devices.length} shown in detail${g.baseAbnormal != null ? ' · was ' + g.baseAbnormal + ' abnormal' : ''}</div>
           </div>
 
           <span class="mission-tag ${g.mission}">${g.mission === 'ongoing' ? 'Mission ongoing' : 'Mission off'}</span>
@@ -1185,6 +1206,43 @@
     }
   }
 
+
+  // Pending-review chips come from the shared verification store (Screen 3).
+  function augmentVerification(){
+    var vqN = document.getElementById('vqN');
+    if (vqN && window.MR) vqN.textContent = MR.pendingCount();
+    if (!window.MR) return;
+    grid.querySelectorAll('[data-code]').forEach(function(card){
+      var code = card.getAttribute('data-code');
+      var sum = MR.groupSummary(code);
+      var open = sum.pending + sum.unresolved;
+      var done = sum.confirmed + sum.false_alarm;
+      if (!open && !done) return;
+      var host = card.querySelector('.status-col') || card.querySelector('.box-brief');
+      if (!host) return;
+      function addChip(cls, text){
+        var a = document.createElement('a');
+        a.href = 'verification.html?group=' + encodeURIComponent(code);
+        a.className = 'vq-chip ' + cls; a.textContent = text;
+        a.addEventListener('click', function(e){ e.stopPropagation(); });
+        host.appendChild(a);
+      }
+      if (sum.actionsFailed) addChip('fail', '\u2715 ' + sum.actionsFailed + ' action failed');
+      else if (sum.actionsPending) addChip('pend', '\u25CF ' + sum.actionsPending + ' action in progress');
+      var a = document.createElement('a');
+      a.href = 'verification.html?group=' + encodeURIComponent(code);
+      a.addEventListener('click', function(e){ e.stopPropagation(); });
+      if (open) {
+        a.className = 'vq-chip pend';
+        a.textContent = open + ' awaiting review' + (done ? ' · ' + done + ' decided' : '');
+      } else {
+        a.className = 'vq-chip clear';
+        a.textContent = '\u2713 All ' + done + ' reviewed (' + sum.confirmed + ' confirmed, ' + sum.false_alarm + ' false alarm)';
+      }
+      host.appendChild(a);
+    });
+  }
+
   function render(view){
     grid.className = view === 'box' ? 'card-grid is-box' : 'card-grid';
     grid.innerHTML = groups.map(view === 'box' ? boxCard : rowCard).join('');
@@ -1192,6 +1250,7 @@
       el.addEventListener('click', () => goToDetail(el.getAttribute('data-code')));
     });
     applyFilter();
+    augmentVerification();
   }
 
   render('row');
