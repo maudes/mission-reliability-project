@@ -18,6 +18,29 @@ The Mission Reliability Project bridges this gap by making mission-critical devi
 [![Google Slides](https://img.shields.io/badge/Google_Slides-Presentation-yellow?logo=google-slides)](https://docs.google.com/presentation/d/1OGXcHpSyM5nTwTitZ5yXQvQ0uoZkcpfTF5sR_sCxuRk/edit?usp=sharing)
 [View Google Slides Presentation](https://docs.google.com/presentation/d/1OGXcHpSyM5nTwTitZ5yXQvQ0uoZkcpfTF5sR_sCxuRk/edit?usp=sharing)
 ---
+
+## Versions
+
+Live Prototype:
+
+https://maudes.github.io/mission-reliability-project/index.html
+
+### Release notes
+
+**v1.0: group status overview.** Trade-off: all analytics were removed so the product could focus on the call center's operating flow. Groups are colour-coded by status, each with a list and map view and an audit log that records who did what and why.
+
+**v2.0: manual verification, no dead ends.** Adds the verification queue (Screen 3) for alerts that need a human decision: Confirmed, Unresolved or False alarm, each with a required note. Confirmed runs a follow-up action (retry or escalate on failure), Unresolved comes back at a set time, and every decision updates the dashboard, decision log and metrics.
+
+**v3.0 (planning): consolidate.** The group page's quick actions (swap, resync, memo, audit report) are not yet synced with the verification record. Planned: one shared device panel, one follow-up and audit trail.
+
+### Flow
+
+Dashboard (`index.html`) → group page (`group-detail*.html`, list or map) → verification (`verification.html`).
+
+Test data lives in `mr-store.js` (browser localStorage). Bump its `?v=` number in every page when it changes.
+
+---
+
 ## Product Vision
 
 ### Beyond After-Action Reviews: Predicting and Preventing Failures Before They Happen
@@ -366,59 +389,6 @@ Operators need clear next actions.
 ### Principle 3: Make Every Recovery Auditable
 
 Every verification and response action becomes part of the mission record.
-
----
-
-## Prototype
-
-Live Prototype:
-
-https://maudes.github.io/mission-reliability-project/group-detail.html
-
-### Release notes
-
-#### v1.0: group status overview
-- Dropped the analytics-style dashboard. The product is now organised **by group**: one overview of all working groups, colour-coded by status (red, yellow, green, grey for mission off).
-- Opening a group gives a **list view and a map view** of its devices.
-- The focus is an **effective audit log**: every device action and status override is written to the audit trail with a justification.
-
-#### v2.0: manual verification and no dead ends
-Builds on v1.0 and adds the interface for the steps that need a human to step in.
-- **Verification queue (Screen 3).** Auto-detected alerts and manual reports are classified as Confirmed, Unresolved or False alarm, with evidence, system reasoning, memo history and a required note on every decision.
-- **Dead-end flows closed:** a Confirmed decision starts a follow-up action whose result is shown (retry or escalate on failure); Unresolved returns to the queue at a set re-check time; a False alarm clears the group's abnormal count; every device has a signal history.
-- Decisions feed back to the dashboard, the decision log (search, filters, CSV export) and the reliability metrics.
-
-#### v3.0 (planning): consolidate the flow
-Goal: one flow instead of a group page and a verification page that overlap. Quick actions and the dedicated verification page should share one set of data and stay in sync. **This is not built yet.** Current state:
-
-| Area | Status |
-|---|---|
-| Override status, Report anomaly | Partly synced. They create or close a verification record. |
-| Swap, Resync, Call, Chat, Warning, Memo, Escalation (group page) | Not synced. They are information-only dialogs; they do not create a follow-up action or touch the verification record. |
-| Group page audit report and incident timeline | Not synced. They use their own in-page log, separate from the verification decision log. |
-| Memos | A memo added on the group page does not appear in the verification memo history. |
-| Device table rows | A decision updates the banner count and the dashboard, but not the row status in the device table. |
-| Device panel | Group page side panel and verification detail still duplicate device status and signals. |
-
-Planned: a single shared device panel, quick actions that write to the same follow-up and audit records, and one audit trail across both pages.
-
-### Main user flow
-
-1. `index.html`: Dashboard. Groups ranked by risk, each showing how many alerts await human review.
-2. `group-detail*.html`: Group detail. Device table and map. The device menu has **Review in verification queue**, and **Report Anomaly** files a manual report into the queue.
-3. `verification.html`: **Screen 3, Verification queue.** Review evidence and classify each alert as Confirmed, Unresolved or False alarm.
-4. Decisions feed back to the dashboard (review chips and counts), the decision log, and the reliability metrics (auto-detection rate, manual-catch fraction, detection time, phase status).
-
-All test data lives in `mr-store.js` and is kept in the browser's localStorage. Use the demo bar on Screen 3 to add alerts or reset.
-
-### What closes the loop
-
-- A **Confirmed** decision starts a follow-up action (swap, resync, escalate). The result (in progress, completed, failed) shows on Screen 3 and the dashboard, and a failed action can be retried or escalated.
-- A **False alarm** clears the device from the group's abnormal count; a group with nothing left flagged turns Normal on the dashboard.
-- Every device, flagged or not, has a signal history (device menu and map side panel).
-- The decision log can be searched, filtered by outcome and group, and exported as CSV.
-
-Bump the `?v=` number on `mr-store.js` in every page whenever the file changes, or browsers keep serving the old copy.
 
 ---
 
